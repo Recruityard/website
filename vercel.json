@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)\\.(mjs|css|woff2|woff|ttf|otf|eot|webp|avif|png|jpg|jpeg|gif|svg|ico|bmp|tiff|mp4|webm|mov|m4v|mp3|wav|ogg|aac|m4a|flac|glb|gltf|usdz|lottie)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}
