@@ -16,7 +16,9 @@ foreach ($file in $htmlFiles) {
     # Convert /contact-us, /find-jobs, /hire-talent, /privacy-policy, /terms-and-conditions, /cookie-policy
     $pages = @('contact-us','find-jobs','hire-talent','privacy-policy','terms-and-conditions','cookie-policy','404')
     foreach ($p in $pages) {
-        $text = [regex]::Replace($text, "href=\"/($p)(#?[^"]*)\"", "href=\"/$p.html$2\"", 'IgnoreCase')
+        $pattern = 'href="/(' + [regex]::Escape($p) + ')(#?[^"`]*)"'
+        $replacement = 'href="/' + $p + '.html$2"'
+        $text = [regex]::Replace($text, $pattern, $replacement, 'IgnoreCase')
     }
 
     # Convert /blog-articles/<slug> to /articles/<slug>.html
