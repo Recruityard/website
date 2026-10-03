@@ -34,7 +34,9 @@ header.framer-HmSbA.framer-v-g3nlef {
   .ry-slideshow ul { transition: none; }
 }
 
-/* ---------- Contact form status message ---------- */
+/* ---------- Contact form ---------- */
+.ry-captcha { margin: 4px 0 16px; min-height: 78px; }
+
 .ry-form-status { margin: 12px 0 0; font: 500 14px/1.4 "Montserrat", sans-serif; }
 .ry-form-status[data-state="ok"] { color: #1a7f37; }
 .ry-form-status[data-state="error"] { color: #c62828; }

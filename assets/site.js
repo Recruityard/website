@@ -134,6 +134,13 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      // hCaptcha (Web3Forms client script) adds its token as h-captcha-response.
+      const captcha = form.querySelector('textarea[name="h-captcha-response"], input[name="h-captcha-response"]');
+      if (form.querySelector('.h-captcha') && !captcha?.value) {
+        status.dataset.state = 'error';
+        status.textContent = 'Please confirm you are human by ticking the captcha box.';
+        return;
+      }
       const button = form.querySelector('[type="submit"]');
       button.disabled = true;
       status.dataset.state = '';
@@ -154,6 +161,7 @@
         status.textContent = 'Sorry, your message could not be sent. Please try again or email us directly.';
       } finally {
         button.disabled = false;
+        window.hcaptcha?.reset(); // a token is single-use
       }
     });
   });
