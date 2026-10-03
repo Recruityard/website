@@ -1,0 +1,40 @@
+/* Behaviour that used to come from Framer's JavaScript runtime, rebuilt in plain CSS.
+   Pair with assets/site.js. */
+
+/* ---------- Burger menu (tablet + phone header) ---------- */
+.ry-menu-toggle { cursor: pointer; }
+.ry-menu-toggle:focus-visible { outline: 2px solid #6648fe; outline-offset: 4px; border-radius: 4px; }
+
+/* Open state renders as a dropdown panel over the page instead of overflowing
+   the header's fixed-height slot with a transparent background. */
+:has(> header.framer-v-g3nlef) { z-index: 100 !important; }
+header.framer-HmSbA.framer-v-g3nlef {
+  position: absolute !important;
+  top: 0; left: 0; right: 0;
+  height: auto !important;
+  max-height: 100vh;
+  overflow-y: auto;
+  justify-content: flex-start !important;
+  background-color: #0d1b20 !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
+}
+
+/* ---------- FAQ accordion ---------- */
+.ry-faq { cursor: pointer; }
+.ry-faq:focus-visible { outline: 2px solid #6648fe; outline-offset: 2px; }
+.ry-faq.framer-v-1lohbwv .framer-1rj53z9 { display: none; }
+.ry-faq .framer-d82djz { transition: transform .2s ease; }
+.ry-faq.framer-v-zquau1 .framer-d82djz { transform: rotate(45deg) !important; }
+
+/* ---------- "Why choose us" slideshow ---------- */
+.ry-slideshow { opacity: 1 !important; }
+.ry-slideshow ul { transition: transform .7s cubic-bezier(.4, 0, .2, 1); cursor: default !important; }
+.ry-slideshow ul > li > * { flex-shrink: 0; width: 100%; height: 100%; visibility: visible !important; }
+@media (prefers-reduced-motion: reduce) {
+  .ry-slideshow ul { transition: none; }
+}
+
+/* ---------- Contact form status message ---------- */
+.ry-form-status { margin: 12px 0 0; font: 500 14px/1.4 "Montserrat", sans-serif; }
+.ry-form-status[data-state="ok"] { color: #1a7f37; }
+.ry-form-status[data-state="error"] { color: #c62828; }
