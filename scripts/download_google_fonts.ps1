@@ -25,6 +25,19 @@ $fonts = @{
     "https://fonts.gstatic.com/s/montserrat/v31/JTUSjIg1_i6t8kCHKm459Wlhyw.woff2" = "montserrat-400-latin.woff2"
 }
 
+# Additional fonts discovered in the HTML (Public Sans, Fragment Mono)
+$more = @{
+    "https://fonts.gstatic.com/s/publicsans/v21/ijwRs572Xtc6ZYQws9YVwnNJfJ7Cww.woff2" = "publicsans-v21-1.woff2"
+    "https://fonts.gstatic.com/s/publicsans/v21/ijwRs572Xtc6ZYQws9YVwnNIfJ7Cww.woff2" = "publicsans-v21-2.woff2"
+    "https://fonts.gstatic.com/s/publicsans/v21/ijwRs572Xtc6ZYQws9YVwnNGfJ4.woff2" = "publicsans-v21-3.woff2"
+
+    "https://fonts.gstatic.com/s/fragmentmono/v6/4iCr6K5wfMRRjxp0DA6-2CLnB45HhrUI.woff2" = "fragmentmono-v6-1.woff2"
+    "https://fonts.gstatic.com/s/fragmentmono/v6/4iCr6K5wfMRRjxp0DA6-2CLnB41HhrUI.woff2" = "fragmentmono-v6-2.woff2"
+    "https://fonts.gstatic.com/s/fragmentmono/v6/4iCr6K5wfMRRjxp0DA6-2CLnB4NHhg.woff2" = "fragmentmono-v6-3.woff2"
+}
+
+foreach ($k in $more.GetEnumerator()) { $fonts[$k.Key] = $k.Value }
+
 Write-Host "Downloading $($fonts.Count) fonts to $fontsDir"
 
 foreach ($pair in $fonts.GetEnumerator()) {
@@ -59,6 +72,13 @@ foreach ($file in $htmlFiles) {
             $text = $text -replace $remote, $local
             $modified = $true
         }
+    }
+
+    # Remove any preconnect to fonts.gstatic.com (we're serving fonts locally)
+    $preconnectPattern = '<link\s+crossorigin[^>]*href="https://fonts.gstatic.com"[^>]*rel="preconnect"[^>]*\/?>'
+    if ([regex]::IsMatch($text, $preconnectPattern, 'IgnoreCase')) {
+        $text = [regex]::Replace($text, $preconnectPattern, '', 'IgnoreCase')
+        $modified = $true
     }
 
     if ($modified) {
