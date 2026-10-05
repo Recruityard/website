@@ -55,6 +55,11 @@ internal links point at real `.html` files.
 - **FAQ answers / mobile menu**: FAQ answers are inline in `index.html`; the open mobile-menu
   layout is the `<template id="ry-menu">` at the end of each page.
 
+## After editing site.css or site.js
+
+Run `python tools/version_assets.py`. It stamps every page's `site.css` / `site.js` link with a
+content hash (`?v=…`) so phones and browsers fetch the new version instead of a cached one.
+
 ## Job pages
 
 Jobs are managed in Zoho Recruit; the site mirrors them.

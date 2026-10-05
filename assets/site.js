@@ -49,12 +49,21 @@
     pin();
     shade();
     window.addEventListener('scroll', shade, { passive: true });
+    // Phones fire resize while scrolling (address bar shows/hides). Only re-pin from scratch when
+    // the breakpoint switched to a different header; otherwise just follow the slot's position.
+    let raf = 0;
     window.addEventListener('resize', () => {
-      // breakpoint may have changed: re-measure from scratch
-      headers.forEach((h) => { h.classList.remove('ry-sticky'); const s = slotOf(h); if (s) s.style.minHeight = ''; });
-      pin();
-      shade();
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const visible = headers.find((h) => h.getClientRects().length && slotOf(h)?.offsetWidth > 0);
+        if (visible !== pinned) {
+          headers.forEach((h) => { h.classList.remove('ry-sticky'); const s = slotOf(h); if (s) s.style.minHeight = ''; });
+        }
+        pin();
+        shade();
+      });
     });
+    window.addEventListener('load', pin); // fonts/images can change the slot's position
   }
 
   /* ---------- Burger menu ----------
