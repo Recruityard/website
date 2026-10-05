@@ -10,7 +10,10 @@ index.html                Home
 about-us.html             About
 hire-talent.html          Employers
 find-jobs.html            Candidates (embeds Zoho Recruit job listings)
-jobs.html                 Open positions: full Zoho Recruit job board (all "Find Jobs" links)
+jobs.html                 Open positions: job cards + search (all "Find Jobs" links)   [generated]
+jobs/*.html               One page per open position, Apply → Zoho Recruit             [generated]
+tools/build_jobs.py       Builds the two above from the public Zoho Recruit careers site
+.github/workflows/jobs.yml  Runs build_jobs.py daily and commits changes
 blog-articles.html        Blog index
 articles/*.html           Blog posts
 contact-us.html           Contact form (Web3Forms)
@@ -51,6 +54,18 @@ internal links point at real `.html` files.
   is the `access_key` input in `contact-us.html`. hCaptcha is required by the Web3Forms settings.
 - **FAQ answers / mobile menu**: FAQ answers are inline in `index.html`; the open mobile-menu
   layout is the `<template id="ry-menu">` at the end of each page.
+
+## Job pages
+
+Jobs are managed in Zoho Recruit; the site mirrors them.
+
+- **Automatic**: the *Refresh job pages* GitHub Action runs every day at 06:15 UTC. It adds
+  pages for new openings, updates changed ones and deletes pages of closed ones. Run it any
+  time from **Actions → Refresh job pages → Run workflow**.
+- **Manual**: `python tools/build_jobs.py` (Python 3.9+, no dependencies), then commit.
+- Only the area between `<!-- JOBS:START -->` and `<!-- JOBS:END -->` in `jobs.html` is
+  generated; edit the rest of `jobs.html` normally (it is also the template for every job page).
+- If Zoho returns no jobs (outage), the script stops without deleting anything.
 
 ## Deploy
 

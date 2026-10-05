@@ -227,6 +227,30 @@
     });
   });
 
+  /* ---------- Job listing search / remote filter (jobs.html) ---------- */
+  const jobList = document.querySelector('.ry-job-list');
+  if (jobList) {
+    const q = document.getElementById('ry-job-q');
+    const remoteOnly = document.getElementById('ry-job-remote');
+    const count = document.querySelector('.ry-jobs-count');
+    const empty = document.querySelector('.ry-jobs-empty');
+    const cards = [...jobList.children];
+    const filter = () => {
+      const terms = q.value.toLowerCase().split(/\s+/).filter(Boolean);
+      let shown = 0;
+      cards.forEach((card) => {
+        const match = (!remoteOnly.checked || card.dataset.remote === 'true')
+          && terms.every((t) => card.dataset.search.includes(t));
+        card.hidden = !match;
+        if (match) shown += 1;
+      });
+      count.textContent = `${shown} open position${shown === 1 ? '' : 's'}`;
+      empty.hidden = shown > 0;
+    };
+    q.addEventListener('input', filter);
+    remoteOnly.addEventListener('change', filter);
+  }
+
   /* ---------- Embedded widgets (Zoho "Featured jobs") ----------
      The srcdoc iframes start at height 0 and post their content height ({embedHeight}) to the
      parent page; Framer used to apply it. */

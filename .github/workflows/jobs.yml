@@ -1,0 +1,51 @@
+name: Refresh job pages
+
+on:
+  schedule:
+    - cron: "15 6 * * *"   # every day, 06:15 UTC
+  workflow_dispatch:        # "Run workflow" button in the Actions tab
+
+permissions:
+  contents: write           # commit regenerated pages
+  pages: write              # request a GitHub Pages rebuild
+
+concurrency:
+  group: refresh-jobs
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate job pages from Zoho Recruit
+        run: python tools/build_jobs.py
+
+      - name: Commit changes
+        id: commit
+        run: |
+          # sitemap.xml gets a new <lastmod> every run; only commit when job content changed.
+          if git diff --quiet -- jobs.html jobs/ && [ -z "$(git ls-files --others --exclude-standard jobs/)" ]; then
+            git checkout -- sitemap.xml
+            echo "No job changes."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A jobs.html jobs/ sitemap.xml
+          git commit -m "Refresh job pages from Zoho Recruit"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      # Pushes made with GITHUB_TOKEN don't trigger other workflows, so ask Pages to rebuild explicitly.
+      - name: Rebuild GitHub Pages
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds" || echo "Pages rebuild request failed (it may already be building)."
