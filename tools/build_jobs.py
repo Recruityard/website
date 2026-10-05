@@ -1,6 +1,11 @@
-"""Generate the job pages from Recruityard's public Zoho Recruit careers site.
+"""Generate the job pages from Zoho Recruit.
 
     python tools/build_jobs.py
+
+Data source:
+  * Zoho Recruit private API (OAuth) when ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET and ZOHO_REFRESH_TOKEN
+    are set (GitHub Actions secrets). Get the refresh token once with tools/zoho_token.py.
+  * Otherwise the public careers feed (no credentials).
 
 Writes:
   jobs.html          job cards between the JOBS markers (the rest of the page is left alone)
@@ -14,6 +19,7 @@ from __future__ import annotations
 import datetime as dt
 import html
 import json
+import os
 import re
 import sys
 import unicodedata
@@ -187,40 +193,108 @@ def slugify(text: str) -> str:
     return s.strip("-")[:80].strip("-")
 
 
-def load_jobs() -> list[dict]:
-    feed = json.loads(get(FEED)).get("data") or []
-    jobs, seen = [], set()
-    for j in feed:
+# ---- source 1: Zoho Recruit private API (OAuth, used when the ZOHO_* environment variables are set)
+
+ZOHO_ACCOUNTS = os.environ.get("ZOHO_ACCOUNTS_URL", "https://accounts.zoho.eu")   # EU data centre
+ZOHO_API = os.environ.get("ZOHO_API_URL", "https://recruit.zoho.eu/recruit/v2")
+CLOSED_STATUSES = {"filled", "cancelled", "declined", "inactive", "on-hold", "on hold", "closed"}
+
+
+def zoho_access_token() -> str:
+    """Exchange the long-lived refresh token for a 1-hour access token."""
+    body = urllib.parse.urlencode({
+        "grant_type": "refresh_token",
+        "refresh_token": os.environ["ZOHO_REFRESH_TOKEN"],
+        "client_id": os.environ["ZOHO_CLIENT_ID"],
+        "client_secret": os.environ["ZOHO_CLIENT_SECRET"],
+    }).encode()
+    req = urllib.request.Request(f"{ZOHO_ACCOUNTS}/oauth/v2/token", data=body, method="POST", headers=UA)
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    if "access_token" not in data:
+        raise RuntimeError(f"Zoho token refresh failed: {data.get('error', data)}")  # never print secrets
+    return data["access_token"]
+
+
+def private_records() -> list[dict]:
+    token = zoho_access_token()
+    records, page = [], 1
+    while True:
+        url = f"{ZOHO_API}/Job_Openings?page={page}&per_page=200"
+        req = urllib.request.Request(url, headers={**UA, "Authorization": f"Zoho-oauthtoken {token}"})
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            raw = resp.read().decode("utf-8")
+        data = json.loads(raw) if raw.strip() else {}          # 204 No Content when there are no records
+        records += data.get("data") or []
+        if not (data.get("info") or {}).get("more_records"):
+            break
+        page += 1
+    # Only what the careers site shows: published and still open.
+    open_jobs = [r for r in records
+                 if r.get("Publish") and str(r.get("Job_Opening_Status") or "").strip().lower() not in CLOSED_STATUSES]
+    # Apply links: the public careers URL (looked up by id; built from the id if the feed is down).
+    try:
+        public_urls = {j["id"]: j["$url"] for j in json.loads(get(FEED)).get("data") or []}
+    except Exception:
+        public_urls = {}
+    for r in open_jobs:
+        title = r.get("Posting_Title") or r.get("Job_Opening_Name") or ""
+        r["$url"] = public_urls.get(str(r["id"])) or \
+            f"{ZOHO}/jobs/Careers/{r['id']}/{slugify(title)}?source=CareerSite"
+    print(f"Zoho private API: {len(records)} job openings, {len(open_jobs)} published and open")
+    return open_jobs
+
+
+# ---- source 2: public careers feed (no credentials; description/salary scraped from each job page)
+
+def public_records() -> list[dict]:
+    records = []
+    for j in json.loads(get(FEED)).get("data") or []:
         if not j.get("Publish", True):
             continue
-        title = (j.get("Posting_Title") or j.get("Job_Opening_Name") or "").strip()
-        slug = slugify(title) or j["id"]
-        if slug in seen:
-            slug = f"{slug}-{j['id'][-6:]}"
-        seen.add(slug)
         try:
             detail = job_details(j["$url"])
-            description = clean_description(detail.get("Job_Description") or "")
-            salary = (detail.get("Salary") or "").strip()
-        except Exception as e:  # keep going with the feed's plain-text description
-            print(f"  ! detail page failed for {title}: {e}", file=sys.stderr)
-            description = f"<p>{html.escape(j.get('Job_Description') or '')}</p>"
-            salary = ""
-        remote = (j.get("Remote_Job") or "").lower() in ("yes", "true")
+            j["Job_Description"] = detail.get("Job_Description") or ""
+            j["Salary"] = detail.get("Salary") or ""
+        except Exception as e:  # keep the feed's plain-text description
+            print(f"  ! detail page failed for {j.get('Posting_Title')}: {e}", file=sys.stderr)
+            j["Job_Description"] = f"<p>{html.escape(j.get('Job_Description') or '')}</p>"
+        records.append(j)
+    print(f"Zoho public feed: {len(records)} published jobs")
+    return records
+
+
+def parse_date(value) -> dt.date | None:
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):  # API: 2026-09-18, public feed: 09/18/2026
+        try:
+            return dt.datetime.strptime(str(value), fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def load_jobs() -> list[dict]:
+    use_api = all(os.environ.get(k) for k in ("ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN"))
+    records = private_records() if use_api else public_records()
+    jobs, seen = [], set()
+    for j in records:
+        jid = str(j["id"])
+        title = (j.get("Posting_Title") or j.get("Job_Opening_Name") or "").strip()
+        slug = slugify(title) or jid
+        if slug in seen:
+            slug = f"{slug}-{jid[-6:]}"
+        seen.add(slug)
+        remote = str(j.get("Remote_Job") or "").lower() in ("yes", "true")
         place = ", ".join(dict.fromkeys(x for x in (j.get("City"), j.get("State"), j.get("Country")) if x))
-        opened = None
-        if j.get("Date_Opened"):
-            try:
-                opened = dt.datetime.strptime(j["Date_Opened"], "%m/%d/%Y").date()
-            except ValueError:
-                pass
+        salary = j.get("Salary") or ""
         jobs.append({
-            "id": j["id"], "slug": slug, "title": title, "apply": j["$url"],
-            "description": description, "salary": salary, "remote": remote,
+            "id": jid, "slug": slug, "title": title, "apply": j["$url"],
+            "description": clean_description(j.get("Job_Description") or ""),
+            "salary": str(salary).strip(), "remote": remote,
             "location": place or ("Portugal" if remote else ""),
             "city": j.get("City") or "", "state": j.get("State") or "", "country": j.get("Country") or "Portugal",
             "type": j.get("Job_Type") or "", "experience": j.get("Work_Experience") or "",
-            "industry": j.get("Industry") or "", "opened": opened,
+            "industry": j.get("Industry") or "", "opened": parse_date(j.get("Date_Opened")),
         })
     jobs.sort(key=lambda x: (x["opened"] or dt.date.min, x["title"]), reverse=True)
     return jobs
@@ -318,7 +392,7 @@ def render_job(j: dict) -> str:
     apply = (f'<a class="ry-btn" href="{esc(j["apply"])}" rel="noopener">Apply now</a>')
     return (
         '<article class="ry-job">'
-        '<a class="ry-job-back" href="../jobs.html"><span aria-hidden="true">←</span> All open positions</a>'
+        '<a class="ry-job-back" href="../find-jobs.html"><span aria-hidden="true">←</span> All open positions</a>'
         f'<ul class="ry-job-meta">{meta_items(j, full=True)}</ul>'
         f'<div class="ry-job-actions">{apply}</div>'
         f'<div class="ry-job-body">{j["description"]}</div>'

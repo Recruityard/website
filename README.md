@@ -66,10 +66,20 @@ content hash (`?v=…`) so phones and browsers fetch the new version instead of 
 
 Jobs are managed in Zoho Recruit; the site mirrors them.
 
+> **Status (2026-10-05): draft / paused.** `jobs.html` and `jobs/*.html` are being reworked (API
+> feed). Meanwhile every "Find Jobs" link points to `find-jobs.html`, the draft pages are
+> `noindex` and out of `sitemap.xml`, and the daily schedule in `.github/workflows/jobs.yml` is
+> commented out. To go live again: restore the `robots` meta (`max-image-preview:large`) in
+> `jobs.html`, point the links back, uncomment the schedule and run the workflow once (it re-adds
+> the sitemap entries).
+
 - **Automatic**: the *Refresh job pages* GitHub Action runs every day at 06:15 UTC. It adds
   pages for new openings, updates changed ones and deletes pages of closed ones. Run it any
   time from **Actions → Refresh job pages → Run workflow**.
 - **Manual**: `python tools/build_jobs.py` (Python 3.9+, no dependencies), then commit.
+- **Data source**: Zoho Recruit private API when the `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`,
+  `ZOHO_REFRESH_TOKEN` secrets are set (one-time setup: `python tools/zoho_token.py`, see
+  `docs/services/zoho-recruit.md`); otherwise Zoho's public careers feed.
 - Only the area between `<!-- JOBS:START -->` and `<!-- JOBS:END -->` in `jobs.html` is
   generated; edit the rest of `jobs.html` normally (it is also the template for every job page).
 - If Zoho returns no jobs (outage), the script stops without deleting anything.

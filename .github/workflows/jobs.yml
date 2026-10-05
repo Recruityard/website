@@ -1,8 +1,10 @@
 name: Refresh job pages
 
 on:
-  schedule:
-    - cron: "15 6 * * *"   # every day, 06:15 UTC
+  # PAUSED while jobs.html is being rebuilt (it would overwrite the JOBS block daily).
+  # To resume, uncomment:
+  # schedule:
+  #   - cron: "15 6 * * *"   # every day, 06:15 UTC
   workflow_dispatch:        # "Run workflow" button in the Actions tab
 
 permissions:
@@ -24,6 +26,11 @@ jobs:
           python-version: "3.12"
 
       - name: Generate job pages from Zoho Recruit
+        # Uses the private Zoho Recruit API when these secrets exist, otherwise the public feed.
+        env:
+          ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+          ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
+          ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
         run: python tools/build_jobs.py
 
       - name: Commit changes

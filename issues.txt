@@ -9,3 +9,5 @@ Cookies Policy
 RSS Feed
 XML Feed
 I'm a candidate
+
+Public Feed - https://recruityard.zohorecruit.eu/recruit/v2/public/Job_Openings?pagename=Careers&source=CareerSite

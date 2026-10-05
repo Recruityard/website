@@ -24,6 +24,26 @@ mirrors them and candidates apply on Zoho's careers pages.
 
 Dashboard: https://recruit.zoho.eu (careers site settings, "Publish" / "Hot openings" flags).
 
+## Private API (OAuth) for the job pages
+
+`tools/build_jobs.py` reads Job Openings through the Zoho Recruit API v2 when three GitHub Actions
+secrets exist; without them it falls back to the public careers feed.
+
+| Secret | What it is |
+|---|---|
+| `ZOHO_CLIENT_ID` | Self Client ID from https://api-console.zoho.eu |
+| `ZOHO_CLIENT_SECRET` | Self Client secret |
+| `ZOHO_REFRESH_TOKEN` | Long-lived token from `python tools/zoho_token.py` |
+
+- Scope: `ZohoRecruit.modules.jobopening.READ` (read-only, job openings only).
+- Endpoints (EU data centre): token `https://accounts.zoho.eu/oauth/v2/token`, API
+  `https://recruit.zoho.eu/recruit/v2/Job_Openings`, header `Authorization: Zoho-oauthtoken <access token>`.
+- Access tokens last 1 hour and are created on each run; the refresh token lasts until revoked.
+- Only jobs with **Publish** on and a status other than Filled/Cancelled/Declined/Inactive/On-hold are shown.
+- To revoke: https://accounts.zoho.eu → Security → Connected Apps (or delete the Self Client), then
+  remove the GitHub secrets.
+- Rotate the client secret / refresh token if anyone who had access leaves.
+
 ## Data it receives
 
 - Visitors viewing "Featured jobs": the widget loads from Zoho's CDN and API, so Zoho receives IP
