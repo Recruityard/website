@@ -1,7 +1,6 @@
 // Interactive behaviour that used to come from Framer's JavaScript runtime.
 // Pair with assets/site.css.
 (() => {
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Make a non-button element (icon container, FAQ card) work with Enter/Space.
   const pressable = (el) => {
@@ -50,14 +49,21 @@
     });
   }
 
-  /* ---------- FAQ accordion ---------- */
+  /* ---------- FAQ accordion ----------
+     Desktop items swap Framer's closed/open variant classes (data-ry-closed / data-ry-open).
+     Phone items have no data-ry-open: Framer's phone open variant put the answer beside the
+     question, so they keep the closed layout and site.css stacks the answer underneath. */
   document.querySelectorAll('.ry-faq').forEach((item) => {
+    const { ryClosed, ryOpen } = item.dataset;
     pressable(item);
     item.addEventListener('click', (e) => {
       if (e.target.closest('a')) return;
-      const open = !item.classList.contains('framer-v-zquau1');
-      item.classList.toggle('framer-v-zquau1', open);
-      item.classList.toggle('framer-v-1lohbwv', !open);
+      const open = !item.classList.contains('ry-open');
+      item.classList.toggle('ry-open', open);
+      if (ryOpen) {
+        item.classList.toggle(ryOpen, open);
+        item.classList.toggle(ryClosed, !open);
+      }
       item.setAttribute('aria-expanded', String(open));
     });
   });
@@ -74,10 +80,10 @@
       track.style.transform = `translateX(${-100 * index}%)`;
       [...track.children].forEach((li, n) => li.setAttribute('aria-hidden', String(n !== index)));
     };
-    // With reduced motion the slides still advance, but without the sliding transition (see site.css).
+    // Advance every 3s. With reduced motion the slide changes without the sliding transition (see site.css).
     const start = () => {
       if (timer) return;
-      timer = setInterval(() => show(index + 1), reduceMotion ? 7000 : 5000);
+      timer = setInterval(() => show(index + 1), 3000);
     };
     const stop = () => {
       clearInterval(timer);
@@ -164,6 +170,40 @@
         window.hcaptcha?.reset(); // a token is single-use
       }
     });
+  });
+
+  /* ---------- "For Companies" / "For Candidates" tabs (hire-talent) ----------
+     The page only ships the companies listing; the candidates listing is kept in the
+     <template> named by data-ry-tabs, and the two versions are swapped on click. */
+  const TAB_LABELS = ['For Companies', 'For Candidates'];
+  document.querySelectorAll('[data-ry-tabs]').forEach((companies) => {
+    const tpl = document.getElementById(companies.dataset.ryTabs);
+    if (!tpl) return;
+    const candidates = tpl.content.firstElementChild.cloneNode(true);
+    const views = { 'For Companies': companies, 'For Candidates': candidates };
+
+    const wire = (view, activeLabel) => {
+      view.querySelectorAll('p').forEach((p) => {
+        const label = p.textContent.trim();
+        if (!TAB_LABELS.includes(label)) return;
+        const tab = p.parentElement.parentElement; // the pill around the label
+        tab.parentElement.setAttribute('role', 'tablist');
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-selected', String(label === activeLabel));
+        tab.tabIndex = 0;
+        tab.style.cursor = 'pointer';
+        pressable(tab);
+        tab.addEventListener('click', (e) => {
+          const target = views[label];
+          if (target.isConnected) return;
+          view.replaceWith(target);
+          // Keep keyboard users on the tab they activated (e.detail is 0 for Enter/Space).
+          if (e.detail === 0) target.querySelector('[role="tab"][aria-selected="true"]')?.focus({ preventScroll: true });
+        });
+      });
+    };
+    wire(companies, 'For Companies');
+    wire(candidates, 'For Candidates');
   });
 
   /* ---------- Buttons whose link only covers the label ----------

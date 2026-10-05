@@ -19,12 +19,27 @@ header.framer-HmSbA.framer-v-g3nlef {
   box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
 }
 
+/* ---------- Home "About us" side menu ----------
+   "Our Team" / "Core Ambitions" / "Our Values" take the look of the active "About Us" item on hover. */
+.framer-woxxr6 .framer-f4FjZ { transition: background-color .2s ease; }
+.framer-woxxr6:hover .framer-f4FjZ,
+.framer-woxxr6:focus-visible .framer-f4FjZ { background-color: #6648fe !important; }
+.framer-woxxr6:hover .framer-f4FjZ .framer-8byu36,
+.framer-woxxr6:focus-visible .framer-f4FjZ .framer-8byu36 { --extracted-r6o4lv: #fff !important; }
+.framer-woxxr6:hover .framer-f4FjZ .framer-text,
+.framer-woxxr6:focus-visible .framer-f4FjZ .framer-text { --framer-font-weight: 600 !important; }
+
 /* ---------- FAQ accordion ---------- */
 .ry-faq { cursor: pointer; }
 .ry-faq:focus-visible { outline: 2px solid #6648fe; outline-offset: 2px; }
-.ry-faq.framer-v-1lohbwv .framer-1rj53z9 { display: none; }
+.ry-faq:not(.ry-open) .framer-1rj53z9 { display: none; }
 .ry-faq .framer-d82djz { transition: transform .2s ease; }
-.ry-faq.framer-v-zquau1 .framer-d82djz { transform: rotate(45deg) !important; }
+.ry-faq.ry-open .framer-d82djz { transform: rotate(45deg) !important; }
+/* Phone layout: answer stacked under the question, icon stays top-right like desktop */
+.ry-faq.ry-open.framer-v-1glmk9b { align-items: flex-start !important; }
+.ry-faq.ry-open.framer-v-1glmk9b .framer-1z7f8r { flex-direction: column; align-items: flex-start; gap: 16px; }
+.ry-faq.ry-open.framer-v-1glmk9b .framer-vvtw5y,
+.ry-faq.ry-open.framer-v-1glmk9b .framer-1rj53z9 { flex: none; width: 100%; }
 
 /* ---------- "Why choose us" slideshow ---------- */
 .ry-slideshow { opacity: 1 !important; }

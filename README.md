@@ -54,3 +54,20 @@ internal links point at real `.html` files.
 ## Deploy
 
 Push to `main`. GitHub Pages publishes the repository root.
+
+Canonical URLs, Open Graph tags, structured data and `sitemap.xml` already point at the final
+domain, `https://recruityard.com`, while the site is being tested on
+`https://recruityard.github.io/website/`.
+
+## Go-live checklist (switching to recruityard.com)
+
+1. **DNS** at the domain registrar: four `A` records for `recruityard.com` →
+   `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`, and a `CNAME`
+   for `www` → `recruityard.github.io`.
+2. **GitHub → Settings → Pages → Custom domain**: enter `recruityard.com` (this commits a
+   `CNAME` file), wait for the DNS check, then tick **Enforce HTTPS**.
+3. **404 page**: GitHub serves `404.html` at any missing path, so switch its relative
+   `./…` links and asset paths to root-absolute `/…`.
+4. **Web3Forms**: if you restrict the access key to a domain, set it to `recruityard.com`.
+5. **Search Console**: add the domain and submit `https://recruityard.com/sitemap.xml`.
+6. Bump the `<lastmod>` dates in `sitemap.xml` whenever pages change.
