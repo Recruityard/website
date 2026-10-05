@@ -12,6 +12,51 @@
     });
   };
 
+  /* ---------- Sticky header ----------
+     Each page has one header per breakpoint (desktop/tablet/phone); only one is visible.
+     Pin the visible one to the top, keep its slot's height so content doesn't jump, and
+     darken it once the page has scrolled. */
+  const headers = [...document.querySelectorAll('header.framer-HmSbA')];
+  // The header's box in the layout: skip wrappers with display:contents (Framer's ssr-variant divs).
+  const slotOf = (h) => {
+    let el = h.parentElement;
+    while (el && getComputedStyle(el).display === 'contents') el = el.parentElement;
+    return el;
+  };
+  let pinned = null;
+  const pin = () => {
+    const visible = headers.find((h) => h.getClientRects().length && slotOf(h)?.offsetWidth > 0);
+    headers.forEach((h) => {
+      if (h === visible) return;
+      h.classList.remove('ry-sticky', 'ry-stuck');
+      h.style.left = h.style.width = '';
+      const s = slotOf(h);
+      if (s) s.style.minHeight = '';
+    });
+    pinned = visible || null;
+    if (!pinned) return;
+    const slot = slotOf(pinned);
+    if (!pinned.classList.contains('ry-sticky')) {
+      slot.style.minHeight = `${pinned.offsetHeight}px`;
+      pinned.classList.add('ry-sticky');
+    }
+    const r = slot.getBoundingClientRect();
+    pinned.style.left = `${r.left}px`;
+    pinned.style.width = `${r.width}px`;
+  };
+  const shade = () => pinned?.classList.toggle('ry-stuck', window.scrollY > 8);
+  if (headers.length) {
+    pin();
+    shade();
+    window.addEventListener('scroll', shade, { passive: true });
+    window.addEventListener('resize', () => {
+      // breakpoint may have changed: re-measure from scratch
+      headers.forEach((h) => { h.classList.remove('ry-sticky'); const s = slotOf(h); if (s) s.style.minHeight = ''; });
+      pin();
+      shade();
+    });
+  }
+
   /* ---------- Burger menu ----------
      The tablet/phone header only ships its closed layout. The open layout is kept in
      <template id="ry-menu"> and swapped in, reusing the page's existing variant CSS. */

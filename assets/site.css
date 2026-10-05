@@ -1,6 +1,23 @@
 /* Behaviour that used to come from Framer's JavaScript runtime, rebuilt in plain CSS.
    Pair with assets/site.js. */
 
+/* ---------- Sticky header (all pages) ----------
+   site.js pins the visible header with position:fixed (CSS sticky can't work: Framer's page
+   wrappers use overflow:hidden). Transparent over the hero, dark once the page is scrolled. */
+header.ry-sticky {
+  position: fixed !important;
+  top: 0;
+  z-index: 100;
+  height: auto !important;
+  transition: background-color .25s ease, box-shadow .25s ease, padding .25s ease;
+}
+header.ry-sticky.ry-stuck {
+  background-color: rgba(13, 27, 32, .97) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
+}
+/* Anchor targets (#ourteam etc.) shouldn't end up under the pinned header */
+html { scroll-padding-top: 120px; }
+
 /* ---------- Burger menu (tablet + phone header) ---------- */
 .ry-menu-toggle { cursor: pointer; }
 .ry-menu-toggle:focus-visible { outline: 2px solid #6648fe; outline-offset: 4px; border-radius: 4px; }
@@ -18,6 +35,7 @@ header.framer-HmSbA.framer-v-g3nlef {
   background-color: #0d1b20 !important;
   box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
 }
+header.ry-sticky.framer-HmSbA.framer-v-g3nlef { position: fixed !important; } /* open menu stays pinned */
 
 /* ---------- Home "About us" side menu ----------
    "Our Team" / "Core Ambitions" / "Our Values" take the look of the active "About Us" item on hover. */
