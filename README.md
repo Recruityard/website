@@ -25,6 +25,8 @@ assets/
   site.js                 Interactive behaviour: menu, FAQ, slideshow, form, button links
   media/                  Images and fonts (self-hosted)
 
+assets/consent.js         Cookie banner + Google Consent Mode (loads analytics only after consent)
+docs/                     Third-party services register, cookie register, decision records
 robots.txt                Crawler rules
 .nojekyll                 Tells GitHub Pages to serve files as-is
 ```

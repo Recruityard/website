@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 versions = {
     name: hashlib.sha1((ROOT / "assets" / name).read_bytes()).hexdigest()[:8]
-    for name in ("site.css", "site.js")
+    for name in ("site.css", "site.js", "consent.js")
 }
-pattern = re.compile(r'(assets/(site\.(?:css|js)))(?:\?v=[0-9a-f]+)?(?=")')
+pattern = re.compile(r'(assets/(site\.(?:css|js)|consent\.js))(?:\?v=[0-9a-f]+)?(?=")')
 
 changed = 0
 for page in sorted(ROOT.rglob("*.html")):
@@ -26,4 +26,4 @@ for page in sorted(ROOT.rglob("*.html")):
     if new != text:
         page.write_text(new, encoding="utf-8", newline="")
         changed += 1
-print(f"site.css?v={versions['site.css']}  site.js?v={versions['site.js']}  ({changed} pages updated)")
+print("  ".join(f"{n}?v={v}" for n, v in versions.items()), f"({changed} pages updated)")

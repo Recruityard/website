@@ -305,6 +305,39 @@
     remoteOnly.addEventListener('change', filter);
   }
 
+  /* ---------- YouTube videos (blog articles) ----------
+     The player isn't loaded until Play is clicked (iframe has data-ry-src, not src). With
+     "Marketing & media" consent it plays straight away; otherwise a short notice asks first. */
+  document.querySelectorAll('iframe[data-ry-src]').forEach((frame) => {
+    const box = frame.parentElement;
+    const play = box.querySelector('button[aria-label="Play"]');
+    const load = () => {
+      frame.src = frame.dataset.rySrc;
+      frame.style.display = 'block';
+      play?.remove();
+      box.querySelector('.ry-video-notice')?.remove();
+    };
+    const ask = () => {
+      if (box.querySelector('.ry-video-notice')) return;
+      const notice = document.createElement('div');
+      notice.className = 'ry-video-notice';
+      notice.innerHTML = '<p>This video is hosted on YouTube, which may set cookies on your device.</p>'
+        + '<div><button type="button" data-v="play">Play video</button>'
+        + '<button type="button" data-v="settings">Cookie settings</button></div>';
+      notice.addEventListener('click', (e) => {
+        const v = e.target.closest('button')?.dataset.v;
+        if (v === 'play') load();
+        if (v === 'settings') window.ryConsent?.open();
+      });
+      box.append(notice);
+      notice.querySelector('button').focus();
+    };
+    play?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.ryConsent?.get()?.marketing) load(); else ask();
+    });
+  });
+
   /* ---------- Embedded widgets (Zoho "Featured jobs") ----------
      The srcdoc iframes start at height 0 and post their content height ({embedHeight}) to the
      parent page; Framer used to apply it. */

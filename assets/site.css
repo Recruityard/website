@@ -127,6 +127,36 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
   .ry-btn { width: 100%; }
 }
 
+/* ---------- Cookie consent banner (assets/consent.js) ---------- */
+.ry-consent { position: fixed; z-index: 1000; left: 16px; right: 16px; bottom: 16px; max-width: 560px; margin-left: auto;
+  box-sizing: border-box; padding: 24px; border-radius: 16px; background: #fff; color: rgba(0, 0, 0, .85);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, .25); font: 400 15px/1.5 "Montserrat", "Montserrat Placeholder", sans-serif; }
+.ry-consent h2 { margin: 0 0 8px; font-size: 18px; font-weight: 700; color: #000; }
+.ry-consent p { margin: 0 0 16px; }
+.ry-consent a { color: #6648fe; }
+.ry-consent-settings { display: grid; gap: 12px; margin: 0 0 16px; }
+.ry-consent-settings[hidden] { display: none; }
+.ry-consent-settings label { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; cursor: pointer; }
+.ry-consent-settings input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: #6648fe; }
+.ry-consent-settings span { grid-column: 2; font-size: 13px; color: rgba(0, 0, 0, .6); }
+.ry-consent-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ry-consent-actions button, .ry-video-notice button { flex: 1 1 auto; min-height: 44px; padding: 0 16px; border-radius: 10px; cursor: pointer;
+  font: 600 14px "Montserrat", sans-serif; border: 2px solid #6648fe; background: #fff; color: #6648fe; }
+.ry-consent-actions .ry-consent-primary, .ry-video-notice button[data-v="play"] { background: #6648fe; color: #fff; }
+.ry-consent-actions button:focus-visible, .ry-video-notice button:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+.ry-consent-link [role="button"], .ry-consent-link[role="button"] { cursor: pointer; }
+[data-ry-consent-open] { cursor: pointer; }
+.ry-consent-cta { margin: 0 0 24px !important; }
+.ry-consent-open-btn { min-height: 48px; padding: 0 24px; border: 0; border-radius: 10px; background: #6648fe; color: #fff;
+  font: 600 15px "Montserrat", sans-serif; }
+.ry-consent-open-btn:hover, .ry-consent-open-btn:focus-visible { background: #5235e8; outline: none; }
+
+/* YouTube click-to-play notice */
+.ry-video-notice { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center;
+  gap: 12px; padding: 16px; background: rgba(13, 27, 32, .88); color: #fff; text-align: center; font: 500 15px/1.4 "Montserrat", sans-serif; }
+.ry-video-notice p { margin: 0; max-width: 420px; }
+.ry-video-notice div { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
 /* ---------- Contact form ---------- */
 .ry-captcha { margin: 4px 0 16px; min-height: 78px; }
 
