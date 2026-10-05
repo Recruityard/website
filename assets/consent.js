@@ -130,7 +130,9 @@
       apply(c);
     });
     document.body.append(banner);
-    banner.querySelector('button[data-act="accept"]').focus({ preventScroll: true });
+    // Focus the dialog itself, not "Accept all", so no button looks pre-selected (equal choices).
+    banner.setAttribute('tabindex', '-1');
+    banner.focus({ preventScroll: true });
   };
 
   window.ryConsent = {
