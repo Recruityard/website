@@ -227,6 +227,21 @@
     });
   });
 
+  /* ---------- Embedded widgets (Zoho "Featured jobs") ----------
+     The srcdoc iframes start at height 0 and post their content height ({embedHeight}) to the
+     parent page; Framer used to apply it. */
+  const embeds = [...document.querySelectorAll('iframe[srcdoc]')];
+  if (embeds.length) {
+    window.addEventListener('message', (e) => {
+      const height = e.data && e.data.embedHeight;
+      if (typeof height !== 'number') return;
+      const frame = embeds.find((f) => f.contentWindow === e.source);
+      if (frame) frame.style.height = `${Math.ceil(height)}px`;
+    });
+    const ask = (f) => f.contentWindow?.postMessage('getEmbedHeight', '*');
+    embeds.forEach((f) => { f.addEventListener('load', () => ask(f)); ask(f); });
+  }
+
   /* ---------- Nested links ----------
      Elements marked data-nested-link sit inside another <a>, so they can't be anchors themselves. */
   const openLink = (el, newTab) => {

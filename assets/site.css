@@ -49,6 +49,10 @@ header.framer-HmSbA.framer-v-g3nlef {
   .ry-slideshow ul { transition: none; }
 }
 
+/* ---------- Jobs page: Zoho job board, wider than the text column ---------- */
+.ry-jobs { width: min(1220px, calc(100vw - 48px)); flex: none; }
+.ry-jobs iframe { display: block; min-height: 320px; }
+
 /* ---------- Contact form ---------- */
 .ry-captcha { margin: 4px 0 16px; min-height: 78px; }
 

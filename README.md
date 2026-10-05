@@ -10,6 +10,7 @@ index.html                Home
 about-us.html             About
 hire-talent.html          Employers
 find-jobs.html            Candidates (embeds Zoho Recruit job listings)
+jobs.html                 Open positions: full Zoho Recruit job board (all "Find Jobs" links)
 blog-articles.html        Blog index
 articles/*.html           Blog posts
 contact-us.html           Contact form (Web3Forms)
