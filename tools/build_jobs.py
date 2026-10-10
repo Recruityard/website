@@ -86,6 +86,7 @@ def job_details(url: str) -> dict:
 
 ALLOWED = {"p", "h2", "h3", "h4", "ul", "ol", "li", "strong", "b", "em", "i", "br", "a"}
 RENAME = {"h1": "h2", "b": "strong", "i": "em"}
+LINE_BREAKS = {"div", "tr"}  # Zoho's editor writes one <div> per line; keep the line breaks
 
 
 class Sanitizer(HTMLParser):
@@ -101,6 +102,9 @@ class Sanitizer(HTMLParser):
             self.skip += 1
             return
         tag = RENAME.get(tag, tag)
+        if not self.skip and tag in LINE_BREAKS:
+            self.line_break()
+            return
         if self.skip or tag not in ALLOWED:
             return
         if tag == "a":
@@ -116,8 +120,15 @@ class Sanitizer(HTMLParser):
             self.skip = max(0, self.skip - 1)
             return
         tag = RENAME.get(tag, tag)
-        if not self.skip and tag in ALLOWED and tag != "br":
+        if not self.skip and tag in LINE_BREAKS:
+            self.line_break()
+        elif not self.skip and tag in ALLOWED and tag != "br":
             self.out.append(f"</{tag}>")
+
+    def line_break(self):
+        """</div><div> ends a line, unless a <br> already did (<div>text<br></div>)."""
+        if not re.search(r"<br>(?:\s|</(?:strong|em|a)>)*$", "".join(self.out[-4:])):
+            self.out.append("<br>")
 
     def handle_data(self, data):
         if not self.skip:
@@ -128,8 +139,14 @@ def clean_description(raw: str) -> str:
     p = Sanitizer()
     p.feed(raw or "")
     s = "".join(p.out)
-    s = re.sub(r"\s+", " ", s)
+    s = re.sub(r"[\s\u200b]+", " ", s)                                  # incl. zero-width spaces
+    s = re.sub(r"(<(?:strong|em)>)\s*((?:<br>\s*)+)", r"\2\1", s)       # <strong><br>Label
+    for _ in range(3):  # <strong>Label<br></strong> -> <strong>Label</strong><br>
+        s = re.sub(r"(\s*<br>\s*)(</(?:strong|em|a)>)", r"\2\1", s)
+    s = re.sub(r"<(strong|em)>\s*</\1>", " ", s)                          # empty inline tags
+    s = re.sub(r"</strong>\s*<strong>", " ", s)                            # <b>Main</b> <b>Tasks</b>
     s = re.sub(r"(<br>\s*)+(</(?:p|li|h2|h3|h4)>)", r"\2", s)          # Zoho's trailing <br>s
+    s = re.sub(r"(<(?:p|li|h2|h3|h4)>)(\s*<br>)+", r"\1", s)           # and leading ones
     s = re.sub(r"<(p|li|h2|h3|h4|strong|em)>\s*</\1>", "", s)           # empty blocks
     s = re.sub(r"<a [^>]*>\s*</a>", "", s)
     s = re.sub(r"\s*(</?(?:p|ul|ol|li|h2|h3|h4)>)\s*", r"\1", s)
@@ -145,6 +162,12 @@ def clean_description(raw: str) -> str:
     s = "".join(out)
     # A paragraph that is only a bold label ("<strong>What you'll do?</strong>") is a heading.
     s = re.sub(r"<p><strong>\s*([^<]{2,80}?[:?])\s*</strong></p>", lambda m: f"<h3>{m.group(1).rstrip(':')}</h3>", s)
+    # Runs of "<p>• item</p>" paragraphs are a list.
+    s = re.sub(r"(?:<p>[•–-]\s*.*?</p>)+",
+               lambda m: "<ul>" + re.sub(r"<p>[•–-]\s*(.*?)</p>", r"<li>\1</li>", m.group(0)) + "</ul>", s)
+    # A short plain line right before a list ("<p>What You'll Do</p><ul>") is its heading.
+    s = re.sub(r"<p>([^<]{2,60}?)</p>(?=<[uo]l>)", lambda m: m.group(0) if re.search(r"[.!;,]$", m.group(1))
+               else f"<h3>{m.group(1).rstrip(':')}</h3>", s)
     return s.strip()
 
 
@@ -163,8 +186,9 @@ def structure_lines(s: str) -> str:
                 out.append("<ul>" + "".join(f"<li>{i}</li>" for i in items) + "</ul>")
                 items.clear()
         for ln in lines:
+            # A line that is only bold text is a heading, unless it reads "Key: value" (Location: Lisbon).
             label = re.fullmatch(r"<strong>\s*([^<]{2,80}?)\s*</strong>:?", ln)
-            if label and re.search(r"[:?]\s*(</strong>)?:?$", ln):
+            if label and not re.search(r":\s*\S", label.group(1)):
                 flush()
                 out.append(f"<h3>{label.group(1).strip().rstrip(':')}</h3>")
             elif re.match(r"^[-•–]\s+", ln):
@@ -241,6 +265,12 @@ def private_records() -> list[dict]:
         title = r.get("Posting_Title") or r.get("Job_Opening_Name") or ""
         r["$url"] = public_urls.get(str(r["id"])) or \
             f"{ZOHO}/jobs/Careers/{r['id']}/{slugify(title)}?source=CareerSite"
+        if not re.search(r"<(?:p|div|br|li|h\d)\b", r.get("Job_Description") or "", re.I):
+            # Plain text (line breaks lost): the careers page carries the formatted version.
+            try:
+                r["Job_Description"] = job_details(r["$url"]).get("Job_Description") or r.get("Job_Description")
+            except Exception as e:
+                print(f"  ! detail page failed for {title}: {e}", file=sys.stderr)
     print(f"Zoho private API: {len(records)} job openings, {len(open_jobs)} published and open")
     return open_jobs
 
