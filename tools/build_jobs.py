@@ -90,6 +90,8 @@ class Sanitizer(HTMLParser):
 
 
 def clean_description(raw: str) -> str:
+    if raw and not re.search(r"<[a-zA-Z][^>]*>", raw):
+        return structure_plain(raw)
     p = Sanitizer()
     p.feed(raw or "")
     s = "".join(p.out)
@@ -154,6 +156,51 @@ def structure_lines(s: str) -> str:
                     flush()
                 para.append(ln)
         flush()
+    return "".join(out)
+
+
+def structure_plain(text: str) -> str:
+    """The API can return the description as plain text, one line per paragraph or bullet.
+    Rebuild headings ("O que vais fazer:"), lists (runs of short lines under a heading) and paragraphs."""
+    lines = [re.sub(r"[\s​]+", " ", ln).strip() for ln in text.splitlines()]
+    lines = [ln for ln in lines if ln]
+    out, items, in_section, prev = [], [], False, ""
+
+    def flush():
+        if len(items) == 1:
+            out.append(f"<p>{items[0]}</p>")
+        elif items:
+            out.append("<ul>" + "".join(f"<li>{i}</li>" for i in items) + "</ul>")
+        items.clear()
+
+    for n, ln in enumerate(lines):
+        nxt = lines[n + 1] if n + 1 < len(lines) else ""
+        bullet = re.match(r"^[-•–*]\s+(.*)", ln)
+        # "Label:", or a short unpunctuated label ("Sobre a vaga", not "Location: Lisbon") at the start,
+        # after a paragraph, or introducing a paragraph (outside a list).
+        words = [w for w in re.findall(r"[^\W\d_][\w'’-]*", ln) if len(w) > 3]
+        # "Candidate Profile" after a sentence, but not a bullet such as "Fluent German (C1/C2)".
+        title_case = (len(words) >= 2 and all(w[0].isupper() for w in words)
+                      and not re.search(r"[\d()]", ln) and (not prev or re.search(r"[.!?]$", prev)))
+        heading = (len(ln) <= 80 and ln.endswith(":")) or (len(ln) <= 60 and ln.endswith("?")) or (
+            len(ln) <= 50 and title_case and not re.search(r"[.!;,]$|:\s*\S", ln)) or (
+            len(ln) <= 40 and not re.search(r"[.!?;,]$", ln) and not re.search(r":\s*\S", ln)
+            and (not prev or (len(prev) > 120 and re.search(r"[.!?]$", prev))
+                 or (not items and (len(nxt) > 120 or nxt.endswith(";")))))
+        if bullet:
+            items.append(html.escape(bullet.group(1), quote=False))
+        elif heading:
+            flush()
+            out.append(f"<h3>{html.escape(ln.rstrip(':'), quote=False)}</h3>")
+            in_section = True
+        elif in_section and len(ln) <= 120:
+            items.append(html.escape(ln, quote=False))
+        else:
+            flush()
+            out.append(f"<p>{html.escape(ln, quote=False)}</p>")
+            in_section = False
+        prev = ln
+    flush()
     return "".join(out)
 
 
