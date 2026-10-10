@@ -10,4 +10,6 @@ RSS Feed
 XML Feed
 I'm a candidate
 
+Set default country selection when Portugal, Bulgaria, Spain or Greece is selected in Locations we recruit for or footer.
+ 
 Public Feed - https://recruityard.zohorecruit.eu/recruit/v2/public/Job_Openings?pagename=Careers&source=CareerSite

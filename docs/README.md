@@ -8,6 +8,7 @@ with it.
 |---|---|---|
 | [`services/`](services/) | One file per external service: what it does, what data it receives, where it is configured, links to its docs and legal terms | Vendor register (GDPR Art. 30 *records of processing* + Art. 28 *processors*) |
 | [`cookies.md`](cookies.md) | Every cookie / browser-storage item the site can create, by consent category | ePrivacy Directive; cookie categories used by most consent tools (necessary, preferences, statistics, marketing) |
+| [`jobs-data-model.md`](jobs-data-model.md) | Which ATS (Zoho Recruit) field fills which part of the job pages, and how to switch ATS | Data contract / field mapping |
 | [`decisions/`](decisions/) | Short records of *why* things are the way they are | [Architecture Decision Records](https://adr.github.io/) |
 
 ## Current services

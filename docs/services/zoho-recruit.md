@@ -26,6 +26,8 @@ Dashboard: https://recruit.zoho.eu (careers site settings, "Publish" / "Hot open
 
 ## Private API (OAuth) for the job pages
 
+Field-by-field mapping and the migration checklist: [../jobs-data-model.md](../jobs-data-model.md).
+
 `tools/build_jobs.py` reads Job Openings through the Zoho Recruit API v2 when three GitHub Actions
 secrets exist; without them it falls back to the public careers feed.
 
