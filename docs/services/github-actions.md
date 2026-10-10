@@ -21,7 +21,8 @@ Recruit, commits changes and asks GitHub Pages to rebuild.
 
 ## Data it receives
 
-Only public job data from Zoho's careers feed. No visitor data.
+Only job opening data from the Zoho Recruit private API. No visitor data. On failure it emails
+the error output to `MAIL_TO` through the SMTP account in the `MAIL_*` secrets.
 
 ## Cookies and browser storage
 

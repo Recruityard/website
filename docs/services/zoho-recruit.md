@@ -17,7 +17,7 @@ mirrors them and candidates apply on Zoho's careers pages.
 
 | Feature | Where | How |
 |---|---|---|
-| Job pages + listing | `jobs.html`, `jobs/*.html` | Generated daily by `tools/build_jobs.py` from the public feed `https://recruityard.zohorecruit.eu/recruit/v2/public/Job_Openings?pagename=Careers&source=CareerSite` and each job's public page (formatted description, salary). No visitor data involved. |
+| Job pages + listing | `jobs.html`, `jobs/*.html` | Generated daily by `tools/build_jobs.py` from the Zoho Recruit private API (see below). No visitor data involved. |
 | "Apply now" buttons | `jobs/*.html` | Link to the job's page on `recruityard.zohorecruit.eu` (application form) |
 | "Featured jobs" widget | `index.html`, `find-jobs.html` | Zoho embed script (`static.zohocdn.com/recruit/embed_careers_site/…/embed_jobs.js`) inside an isolated `<iframe srcdoc>`, page `Hot-Openings` |
 | RSS / XML job feeds | footer links | Links only |
@@ -28,8 +28,10 @@ Dashboard: https://recruit.zoho.eu (careers site settings, "Publish" / "Hot open
 
 Field-by-field mapping and the migration checklist: [../jobs-data-model.md](../jobs-data-model.md).
 
-`tools/build_jobs.py` reads Job Openings through the Zoho Recruit API v2 when three GitHub Actions
-secrets exist; without them it falls back to the public careers feed.
+`tools/build_jobs.py` reads Job Openings through the Zoho Recruit API v2 only; these three GitHub
+Actions secrets are required. If they are missing or the API call fails, the script exits with an
+error, leaves the pages untouched, and the workflow emails the error (secrets `MAIL_SERVER`,
+`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_TO`; SMTP over SSL, port 465).
 
 | Secret | What it is |
 |---|---|
@@ -74,4 +76,4 @@ Necessary / functional: the job listings are core content of a recruitment site.
 
 - Job fields such as *Work Experience* are shown as typed in Zoho (some are in Portuguese, e.g.
   "0-1 ano", "Mais recente").
-- If the public feed format changes, `tools/build_jobs.py` stops without deleting pages.
+- If the API fails or returns no jobs, `tools/build_jobs.py` stops without deleting pages.

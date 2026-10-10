@@ -2,10 +2,9 @@
 
     python tools/build_jobs.py
 
-Data source:
-  * Zoho Recruit private API (OAuth) when ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET and ZOHO_REFRESH_TOKEN
-    are set (GitHub Actions secrets). Get the refresh token once with tools/zoho_token.py.
-  * Otherwise the public careers feed (no credentials).
+Data source: the Zoho Recruit private API (OAuth). ZOHO_CLIENT_ID, ZOHO_CLIENT_SECRET and
+ZOHO_REFRESH_TOKEN are required (GitHub Actions secrets); get the refresh token once with
+tools/zoho_token.py. If the API fails the script exits non-zero and leaves the pages untouched.
 
 Writes:
   jobs.html          job cards between the JOBS markers (the rest of the page is left alone)
@@ -30,56 +29,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ZOHO = "https://recruityard.zohorecruit.eu"
-FEED = f"{ZOHO}/recruit/v2/public/Job_Openings?pagename=Careers&source=CareerSite"
 BASE = "https://recruityard.com"
 LISTING = ROOT / "jobs.html"
 JOBS_DIR = ROOT / "jobs"
 START, END = "<!-- JOBS:START -->", "<!-- JOBS:END -->"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; RecruityardSiteBuilder/1.0)"}
-
-
-# ---------------------------------------------------------------- fetching
-
-def get(url: str) -> str:
-    url = urllib.parse.quote(url, safe=":/?&=%#+,;@!$'()*~")  # Zoho URLs can contain accents (Francês)
-    req = urllib.request.Request(url, headers={**UA, "Accept": "application/json, text/html"})
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        return resp.read().decode("utf-8")
-
-
-def js_unescape(s: str) -> str:
-    """Decode a JavaScript string literal body (without quotes). Never evaluates anything."""
-    simple = {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "f": "\f", "v": "\v", "0": "\0"}
-    out, i = [], 0
-    while i < len(s):
-        c = s[i]
-        if c != "\\":
-            out.append(c)
-            i += 1
-            continue
-        n = s[i + 1]
-        if n == "x":
-            out.append(chr(int(s[i + 2:i + 4], 16)))
-            i += 4
-        elif n == "u":
-            out.append(chr(int(s[i + 2:i + 6], 16)))
-            i += 6
-        else:
-            out.append(simple.get(n, n))
-            i += 2
-    return "".join(out)
-
-
-def job_details(url: str) -> dict:
-    """Rich description + salary, embedded in the Zoho job page as jobs = JSON.parse('…')."""
-    page = get(url)
-    marker = "jobs = JSON.parse('"
-    a = page.index(marker) + len(marker)
-    b = a
-    while not (page[b] == "'" and page[b - 1] != "\\"):
-        b += 1
-    data = json.loads(js_unescape(page[a:b]))
-    return data[0] if isinstance(data, list) else data
 
 
 # ---------------------------------------------------------------- sanitising
@@ -217,7 +171,7 @@ def slugify(text: str) -> str:
     return s.strip("-")[:80].strip("-")
 
 
-# ---- source 1: Zoho Recruit private API (OAuth, used when the ZOHO_* environment variables are set)
+# ---- Zoho Recruit private API (OAuth; the ZOHO_* environment variables are required)
 
 ZOHO_ACCOUNTS = os.environ.get("ZOHO_ACCOUNTS_URL", "https://accounts.zoho.eu")   # EU data centre
 ZOHO_API = os.environ.get("ZOHO_API_URL", "https://recruit.zoho.eu/recruit/v2")
@@ -256,46 +210,16 @@ def private_records() -> list[dict]:
     # Only what the careers site shows: published and still open.
     open_jobs = [r for r in records
                  if r.get("Publish") and str(r.get("Job_Opening_Status") or "").strip().lower() not in CLOSED_STATUSES]
-    # Apply links: the public careers URL (looked up by id; built from the id if the feed is down).
-    try:
-        public_urls = {j["id"]: j["$url"] for j in json.loads(get(FEED)).get("data") or []}
-    except Exception:
-        public_urls = {}
+    # Apply links: the Zoho careers page of each job (Zoho only needs the id; the slug is cosmetic).
     for r in open_jobs:
         title = r.get("Posting_Title") or r.get("Job_Opening_Name") or ""
-        r["$url"] = public_urls.get(str(r["id"])) or \
-            f"{ZOHO}/jobs/Careers/{r['id']}/{slugify(title)}?source=CareerSite"
-        if not re.search(r"<(?:p|div|br|li|h\d)\b", r.get("Job_Description") or "", re.I):
-            # Plain text (line breaks lost): the careers page carries the formatted version.
-            try:
-                r["Job_Description"] = job_details(r["$url"]).get("Job_Description") or r.get("Job_Description")
-            except Exception as e:
-                print(f"  ! detail page failed for {title}: {e}", file=sys.stderr)
+        r["$url"] = f"{ZOHO}/jobs/Careers/{r['id']}/{slugify(title)}?source=CareerSite"
     print(f"Zoho private API: {len(records)} job openings, {len(open_jobs)} published and open")
     return open_jobs
 
 
-# ---- source 2: public careers feed (no credentials; description/salary scraped from each job page)
-
-def public_records() -> list[dict]:
-    records = []
-    for j in json.loads(get(FEED)).get("data") or []:
-        if not j.get("Publish", True):
-            continue
-        try:
-            detail = job_details(j["$url"])
-            j["Job_Description"] = detail.get("Job_Description") or ""
-            j["Salary"] = detail.get("Salary") or ""
-        except Exception as e:  # keep the feed's plain-text description
-            print(f"  ! detail page failed for {j.get('Posting_Title')}: {e}", file=sys.stderr)
-            j["Job_Description"] = f"<p>{html.escape(j.get('Job_Description') or '')}</p>"
-        records.append(j)
-    print(f"Zoho public feed: {len(records)} published jobs")
-    return records
-
-
 def parse_date(value) -> dt.date | None:
-    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):  # API: 2026-09-18, public feed: 09/18/2026
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y"):  # API: 2026-09-18
         try:
             return dt.datetime.strptime(str(value), fmt).date()
         except ValueError:
@@ -304,8 +228,10 @@ def parse_date(value) -> dt.date | None:
 
 
 def load_jobs() -> list[dict]:
-    use_api = all(os.environ.get(k) for k in ("ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN"))
-    records = private_records() if use_api else public_records()
+    missing = [k for k in ("ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN") if not os.environ.get(k)]
+    if missing:
+        raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
+    records = private_records()
     jobs, seen = [], set()
     for j in records:
         jid = str(j["id"])
@@ -460,7 +386,12 @@ def main() -> int:
         print("jobs.html is missing the JOBS:START / JOBS:END markers", file=sys.stderr)
         return 1
 
-    jobs = load_jobs()
+    try:
+        jobs = load_jobs()
+    except Exception as e:  # token refresh, HTTP or JSON errors; existing pages stay as they are
+        detail = e.read().decode("utf-8", "replace")[:500] if hasattr(e, "read") else ""
+        print(f"Zoho Recruit API failed: {type(e).__name__}: {e} {detail}".strip(), file=sys.stderr)
+        return 1
     if not jobs:
         print("Zoho returned no jobs; leaving existing pages untouched.", file=sys.stderr)
         return 1

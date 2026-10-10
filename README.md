@@ -73,13 +73,15 @@ Jobs are managed in Zoho Recruit; the site mirrors them.
 > `jobs.html`, point the links back, uncomment the schedule and run the workflow once (it re-adds
 > the sitemap entries).
 
-- **Automatic**: the *Refresh job pages* GitHub Action runs every day at 06:15 UTC. It adds
+- **Automatic**: the *Refresh job pages* GitHub Action runs every day at 10:00, 14:00 and 18:00
+  Lisbon time. It adds
   pages for new openings, updates changed ones and deletes pages of closed ones. Run it any
   time from **Actions → Refresh job pages → Run workflow**.
 - **Manual**: `python tools/build_jobs.py` (Python 3.9+, no dependencies), then commit.
-- **Data source**: Zoho Recruit private API when the `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`,
-  `ZOHO_REFRESH_TOKEN` secrets are set (one-time setup: `python tools/zoho_token.py`, see
-  `docs/services/zoho-recruit.md`); otherwise Zoho's public careers feed.
+- **Data source**: Zoho Recruit private API only. The `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` and
+  `ZOHO_REFRESH_TOKEN` secrets are required (one-time setup: `python tools/zoho_token.py`, see
+  `docs/services/zoho-recruit.md`). If the API fails, the pages are left untouched and an email
+  with the error goes to `MAIL_TO` (SMTP secrets `MAIL_SERVER`, `MAIL_USERNAME`, `MAIL_PASSWORD`).
 - Only the area between `<!-- JOBS:START -->` and `<!-- JOBS:END -->` in `jobs.html` is
   generated; edit the rest of `jobs.html` normally (it is also the template for every job page).
 - If Zoho returns no jobs (outage), the script stops without deleting anything.

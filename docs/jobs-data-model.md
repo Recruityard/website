@@ -13,14 +13,14 @@ Code: [`tools/build_jobs.py`](../tools/build_jobs.py) · Workflow: [`.github/wor
 ```text
  ATS (Zoho Recruit)                    tools/build_jobs.py                                 website
 ┌──────────────────────┐   ┌──────────────────────────────────────────────┐   ┌─────────────────────────────┐
-│ Private API (OAuth)  │──►│ private_records()  ┐                         │   │ jobs.html  (cards + search) │
-│  or                  │   │                    ├─► load_jobs() ──► Job ──┼──►│ jobs/<slug>.html (1 per job)│
-│ Public careers feed  │──►│ public_records()   ┘   (normalise)    model  │   │ JSON-LD JobPosting (Google) │
+│ Private API (OAuth)  │──►│ private_records()                            │   │ jobs.html  (cards + search) │
+│                      │   │        └─► load_jobs() ──► Job model ────────┼──►│ jobs/<slug>.html (1 per job)│
+│                      │   │            (normalise)                       │   │ JSON-LD JobPosting (Google) │
 └──────────────────────┘   └──────────────────────────────────────────────┘   │ sitemap.xml entries         │
                                                                               └─────────────────────────────┘
 ```
 
-1. A **source function** fetches raw records from the ATS (`private_records()` or `public_records()`).
+1. A **source function** fetches raw records from the ATS (`private_records()`).
 2. **`load_jobs()`** converts each raw record into the site's own **Job model** (section 2). This is
    the *only* place where ATS field names appear.
 3. Everything after that (cards, job pages, Google structured data, sitemap) reads **only the Job
@@ -68,29 +68,29 @@ ads written as lines with "- " bullets and "**Label:**" lines are turned into re
 
 ## 3. Field mapping — Zoho Recruit → Job model
 
-| Job model | Zoho private API field (`Job_Openings`) | Zoho public feed field | Transformation |
-|---|---|---|---|
-| `id` | `id` | `id` | as text |
-| `title` | `Posting_Title` (fallback `Job_Opening_Name`) | `Posting_Title` (fallback `Job_Opening_Name`) | trimmed |
-| `apply` | — *(not in API)* → looked up by `id` in the public feed's `$url`; if missing, built as `https://recruityard.zohorecruit.eu/jobs/Careers/<id>/<slug>?source=CareerSite` | `$url` | — |
-| `description` | `Job_Description` (HTML) | `Job_Description` is plain text → the HTML version is read from each job's public page | `clean_description()` |
-| `city` | `City` | `City` | — |
-| `state` | `State` | `State` | — |
-| `country` | `Country` | `Country` | default "Portugal" |
-| `location` | `City` + `State` + `Country` | same | joined, see 2.1 |
-| `remote` | `Remote_Job` | `Remote_Job` | true if "Yes"/"true" |
-| `type` | `Job_Type` | `Job_Type` | — |
-| `experience` | `Work_Experience` | `Work_Experience` | shown as typed in Zoho (e.g. "0-1 ano") |
-| `industry` | `Industry` | `Industry` | — |
-| `salary` | `Salary` | — → read from each job's public page | trimmed |
-| `opened` | `Date_Opened` (`YYYY-MM-DD`) | `Date_Opened` (`MM/DD/YYYY`) | `parse_date()` accepts both |
+| Job model | Zoho private API field (`Job_Openings`) | Transformation |
+|---|---|---|
+| `id` | `id` | as text |
+| `title` | `Posting_Title` (fallback `Job_Opening_Name`) | trimmed |
+| `apply` | — *(not in API)* → built as `https://recruityard.zohorecruit.eu/jobs/Careers/<id>/<slug>?source=CareerSite` | — |
+| `description` | `Job_Description` (HTML) | `clean_description()` |
+| `city` | `City` | — |
+| `state` | `State` | — |
+| `country` | `Country` | default "Portugal" |
+| `location` | `City` + `State` + `Country` | joined, see 2.1 |
+| `remote` | `Remote_Job` | true if "Yes"/"true" |
+| `type` | `Job_Type` | — |
+| `experience` | `Work_Experience` | shown as typed in Zoho (e.g. "0-1 ano") |
+| `industry` | `Industry` | — |
+| `salary` | `Salary` | trimmed |
+| `opened` | `Date_Opened` (`YYYY-MM-DD`) | `parse_date()` |
 
 ### Which jobs are published
 
-| Rule | Private API | Public feed |
-|---|---|---|
-| Must be published on the careers site | `Publish` = true | the feed only contains published jobs |
-| Must still be open | `Job_Opening_Status` not in Filled, Cancelled, Declined, Inactive, On-hold, Closed | handled by Zoho |
+| Rule | Private API |
+|---|---|
+| Must be published on the careers site | `Publish` = true |
+| Must still be open | `Job_Opening_Status` not in Filled, Cancelled, Declined, Inactive, On-hold, Closed |
 
 Zoho fields **not** used today (available if wanted): job owner/recruiter, number of positions,
 target date, required skills, client name, custom fields. Ask for a field → add it to the Job model

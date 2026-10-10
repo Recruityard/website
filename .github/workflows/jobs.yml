@@ -1,10 +1,11 @@
 name: Refresh job pages
 
 on:
-  # PAUSED while jobs.html is being rebuilt (it would overwrite the JOBS block daily).
-  # To resume, uncomment:
-  # schedule:
-  #   - cron: "15 6 * * *"   # every day, 06:15 UTC
+  # Every day at 10:00, 14:00 and 18:00 Lisbon time. Cron is UTC, so both the summer (UTC+1) and
+  # winter (UTC+0) times are scheduled and the "when" job below keeps the one that matches today.
+  schedule:
+    - cron: "0 9,13,17 * * *"    # Lisbon summer time (WEST)
+    - cron: "0 10,14,18 * * *"   # Lisbon winter time (WET)
   workflow_dispatch:        # "Run workflow" button in the Actions tab
 
 permissions:
@@ -16,7 +17,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  when:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          offset=$(TZ=Europe/Lisbon date +%z)   # +0100 in summer, +0000 in winter
+          if [ -z "$SCHEDULE" ] \
+             || { [ "$SCHEDULE" = "0 9,13,17 * * *" ] && [ "$offset" = "+0100" ]; } \
+             || { [ "$SCHEDULE" = "0 10,14,18 * * *" ] && [ "$offset" = "+0000" ]; }; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping: this UTC slot is not 10:00/14:00/18:00 in Lisbon today (offset $offset)."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   refresh:
+    needs: when
+    if: needs.when.outputs.run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,12 +48,39 @@ jobs:
           python-version: "3.12"
 
       - name: Generate job pages from Zoho Recruit
-        # Uses the private Zoho Recruit API when these secrets exist, otherwise the public feed.
+        # Zoho Recruit private API only. On failure the pages are left untouched and an email is sent.
+        id: build
         env:
           ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
           ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
           ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
-        run: python tools/build_jobs.py
+        run: |
+          set -o pipefail
+          log="$RUNNER_TEMP/build.log"
+          if ! python tools/build_jobs.py 2>&1 | tee "$log"; then
+            { echo "log<<EOF_LOG"; tail -n 30 "$log"; echo "EOF_LOG"; } >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Email failure notice
+        if: failure() && steps.build.outcome == 'failure'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          from: Recruityard website <${{ secrets.MAIL_USERNAME }}>
+          to: ${{ secrets.MAIL_TO }}
+          subject: "Job pages not refreshed: Zoho Recruit API failed"
+          body: |
+            The daily job page refresh could not read the Zoho Recruit API, so the job pages on the site were left as they were.
+
+            Error output:
+            ${{ steps.build.outputs.log }}
+
+            Full log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Commit changes
         id: commit
