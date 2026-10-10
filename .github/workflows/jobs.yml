@@ -7,6 +7,11 @@ on:
     - cron: "0 9,13,17 * * *"    # Lisbon summer time (WEST)
     - cron: "0 10,14,18 * * *"   # Lisbon winter time (WET)
   workflow_dispatch:        # "Run workflow" button in the Actions tab
+    inputs:
+      simulate_failure:
+        description: "Simulate a failure (test the failure email; pages are not touched)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write           # commit regenerated pages
@@ -48,39 +53,24 @@ jobs:
           python-version: "3.12"
 
       - name: Generate job pages from Zoho Recruit
-        # Zoho Recruit private API only. On failure the pages are left untouched and an email is sent.
+        # Zoho Recruit private API only. On failure the pages are left untouched.
         id: build
         env:
           ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
           ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
           ZOHO_REFRESH_TOKEN: ${{ secrets.ZOHO_REFRESH_TOKEN }}
+          SIMULATE_FAILURE: ${{ inputs.simulate_failure }}
         run: |
           set -o pipefail
-          log="$RUNNER_TEMP/build.log"
-          if ! python tools/build_jobs.py 2>&1 | tee "$log"; then
-            { echo "log<<EOF_LOG"; tail -n 30 "$log"; echo "EOF_LOG"; } >> "$GITHUB_OUTPUT"
-            exit 1
+          if [ "$SIMULATE_FAILURE" = "true" ]; then
+            echo "Simulated failure requested: hiding ZOHO_REFRESH_TOKEN from the script."
+            unset ZOHO_REFRESH_TOKEN
           fi
-
-      - name: Email failure notice
-        if: failure() && steps.build.outcome == 'failure'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.MAIL_SERVER }}
-          server_port: 465
-          secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          from: Recruityard website <${{ secrets.MAIL_USERNAME }}>
-          to: ${{ secrets.MAIL_TO }}
-          subject: "Job pages not refreshed: Zoho Recruit API failed"
-          body: |
-            The daily job page refresh could not read the Zoho Recruit API, so the job pages on the site were left as they were.
-
-            Error output:
-            ${{ steps.build.outputs.log }}
-
-            Full log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          log="$RUNNER_TEMP/build.log"
+          status=0
+          python tools/build_jobs.py 2>&1 | tee "$log" || status=$?
+          { echo "log<<EOF_LOG"; tail -n 40 "$log"; echo "EOF_LOG"; } >> "$GITHUB_OUTPUT"
+          exit $status
 
       - name: Commit changes
         id: commit
@@ -105,3 +95,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api -X POST "repos/${{ github.repository }}/pages/builds" || echo "Pages rebuild request failed (it may already be building)."
+
+      # Shown on the run page. GitHub's own notification email (Settings > Notifications > Actions)
+      # links to it; untick "Only notify for failed workflows" to get an email for every run.
+      - name: Run summary
+        if: always()
+        env:
+          STATUS: ${{ job.status }}
+          BUILD: ${{ steps.build.outcome }}
+          COMMIT: ${{ steps.commit.outcome }}
+          CHANGED: ${{ steps.commit.outputs.changed }}
+          LOG: ${{ steps.build.outputs.log }}
+        run: |
+          if [ "$STATUS" != "success" ]; then
+            result="❌ Failed: the job pages were not updated. The site still shows the previous version."
+          elif [ "$CHANGED" = "true" ]; then
+            result="✅ Succeeded: job pages were updated and published."
+          else
+            result="✅ Succeeded: no changes in Zoho since the last run; nothing to publish."
+          fi
+          {
+            echo "## Job pages refresh"
+            echo "$result"
+            echo
+            echo "| Step | Result |"
+            echo "|---|---|"
+            echo "| Zoho Recruit API | $BUILD |"
+            echo "| Commit | $COMMIT |"
+            echo
+            echo '```text'
+            echo "$LOG"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

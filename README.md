@@ -80,8 +80,9 @@ Jobs are managed in Zoho Recruit; the site mirrors them.
 - **Manual**: `python tools/build_jobs.py` (Python 3.9+, no dependencies), then commit.
 - **Data source**: Zoho Recruit private API only. The `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` and
   `ZOHO_REFRESH_TOKEN` secrets are required (one-time setup: `python tools/zoho_token.py`, see
-  `docs/services/zoho-recruit.md`). If the API fails, the pages are left untouched and an email
-  with the error goes to `MAIL_TO` (SMTP secrets `MAIL_SERVER`, `MAIL_USERNAME`, `MAIL_PASSWORD`).
+  `docs/services/zoho-recruit.md`). If the API fails, the pages are left untouched. Each run
+  writes a success/failure report to its summary page; GitHub's notification emails (Settings →
+  Notifications → Actions, with "Only notify for failed workflows" unticked) link to it.
 - Only the area between `<!-- JOBS:START -->` and `<!-- JOBS:END -->` in `jobs.html` is
   generated; edit the rest of `jobs.html` normally (it is also the template for every job page).
 - If Zoho returns no jobs (outage), the script stops without deleting anything.

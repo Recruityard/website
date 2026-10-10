@@ -30,8 +30,8 @@ Field-by-field mapping and the migration checklist: [../jobs-data-model.md](../j
 
 `tools/build_jobs.py` reads Job Openings through the Zoho Recruit API v2 only; these three GitHub
 Actions secrets are required. If they are missing or the API call fails, the script exits with an
-error, leaves the pages untouched, and the workflow emails the error (secrets `MAIL_SERVER`,
-`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_TO`; SMTP over SSL, port 465).
+error and leaves the pages untouched. The run's summary page shows a success/failure
+report with the output; GitHub's Actions notification emails link to it.
 
 | Secret | What it is |
 |---|---|
