@@ -262,6 +262,11 @@ def private_records() -> list[dict]:
         title = r.get("Posting_Title") or r.get("Job_Opening_Name") or ""
         r["$url"] = f"{ZOHO}/jobs/Careers/{r['id']}/{slugify(title)}?source=CareerSite"
     print(f"Zoho private API: {len(records)} job openings, {len(open_jobs)} published and open")
+    for r in open_jobs:  # what Zoho sends decides how well the description can be formatted
+        raw = r.get("Job_Description") or ""
+        kind = ("html" if re.search(r"<[a-zA-Z][^>]*>", raw) else
+                "plain text, line breaks" if "\n" in raw.strip() else "plain text, single line")
+        print(f"  description [{kind}] {r.get('Posting_Title')}: {raw[:100]!r}")
     return open_jobs
 
 
