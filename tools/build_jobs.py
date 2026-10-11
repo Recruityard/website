@@ -462,7 +462,8 @@ def job_jsonld(j: dict) -> str:
         "description": j["description"],
         "identifier": {"@type": "PropertyValue", "name": "Recruityard", "value": j["id"]},
         "hiringOrganization": {"@type": "Organization", "name": "Recruityard", "sameAs": BASE + "/",
-                               "logo": f"{BASE}/assets/media/bPPqciueo2HHJROfIlp9nEAfJ8-d8c7a1-512.png"},
+                               # Square, on white: Google shows it in a square slot on a light background.
+                               "logo": f"{SITE_URL}/assets/media/recruityard-logo-white-512.jpg"},
         "employmentType": {"full time": "FULL_TIME", "part time": "PART_TIME", "contract": "CONTRACTOR",
                            "temporary": "TEMPORARY", "internship": "INTERN"}.get(j["type"].lower(), "OTHER"),
         "url": f"{BASE}/jobs/{j['slug']}.html",
@@ -486,25 +487,26 @@ def job_jsonld(j: dict) -> str:
     return json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
 
 
-FEED_LOGO = "assets/media/bPPqciueo2HHJROfIlp9nEAfJ8-d8c7a1-512.png"
+RSS_LOGO = ("assets/media/recruityard-logo-white-144.jpg", 144, 38)  # wordmark on white, RSS max width 144
 
 
-def rfc822(day: dt.date) -> str:
+def rfc822(when: dt.date | dt.datetime) -> str:
     """RSS dates: RFC 822 with a numeric zone. Job dates have no time, so noon UTC."""
-    return email.utils.format_datetime(dt.datetime(day.year, day.month, day.day, 12, tzinfo=dt.timezone.utc))
+    if not isinstance(when, dt.datetime):
+        when = dt.datetime(when.year, when.month, when.day, 12, tzinfo=dt.timezone.utc)
+    return email.utils.format_datetime(when)
 
 
 def cdata(text: str) -> str:
     return "<![CDATA[" + text.replace("]]>", "]]]]><![CDATA[>") + "]]>"
 
 
-def render_rss(jobs: list[dict]) -> str:
+def render_rss(jobs: list[dict], built: dt.datetime) -> str:
     """RSS 2.0 feed of the open jobs, built from the Job model only (no ATS fields), so it keeps working
-    when the ATS changes. Links point at our job pages. lastBuildDate is the newest job's date rather
-    than the build time, so the file only changes when the jobs do."""
+    when the ATS changes. Links point at our job pages. `built` becomes lastBuildDate (see write_rss)."""
     x = lambda s: html.escape(str(s), quote=False)
     listing, self_url = f"{SITE_URL}/jobs.html", f"{SITE_URL}/jobs/rss.xml"
-    newest = max((j["opened"] for j in jobs if j["opened"]), default=None)
+    logo, logo_w, logo_h = RSS_LOGO
     items = []
     for j in jobs:
         url = f"{SITE_URL}/jobs/{j['slug']}.html"
@@ -534,12 +536,25 @@ def render_rss(jobs: list[dict]) -> str:
         "<description>Current job openings from Recruityard. We see your potential. "
         "The world will see your impact.</description>"
         "<language>en</language>"
-        + (f"<lastBuildDate>{rfc822(newest)}</lastBuildDate>" if newest else "")
-        + "<ttl>180</ttl>"
-        f"<image><url>{SITE_URL}/{FEED_LOGO}</url><title>Recruityard – Open positions</title><link>{listing}</link></image>"
+        f"<lastBuildDate>{rfc822(built)}</lastBuildDate>"
+        "<ttl>180</ttl>"
+        f"<image><url>{SITE_URL}/{logo}</url><title>Recruityard – Open positions</title><link>{listing}</link>"
+        f"<width>{logo_w}</width><height>{logo_h}</height></image>"
         + "\n" + "\n".join(items) + "\n"
         "</channel></rss>\n"
     )
+
+
+def write_rss(jobs: list[dict]) -> bool:
+    """Write jobs/rss.xml only when its content changed, stamping lastBuildDate with the build time.
+    An unchanged feed keeps its file (and date), so a refresh without job changes commits nothing."""
+    without_date = lambda s: re.sub(r"<lastBuildDate>[^<]*</lastBuildDate>", "", s)
+    new = render_rss(jobs, dt.datetime.now(dt.timezone.utc).replace(microsecond=0))
+    old = RSS.read_text(encoding="utf-8") if RSS.exists() else ""
+    if old and without_date(old) == without_date(new):
+        return False
+    RSS.write_text(new, encoding="utf-8", newline="")
+    return True
 
 
 def render_job(j: dict) -> str:
@@ -613,8 +628,7 @@ def main() -> int:
         if old.name not in keep:
             old.unlink()
             print("  removed", old.relative_to(ROOT))
-    RSS.write_text(render_rss(jobs), encoding="utf-8", newline="")
-    print("  ", RSS.relative_to(ROOT))
+    print("  ", RSS.relative_to(ROOT), "" if write_rss(jobs) else "(unchanged)")
 
     sitemap = ROOT / "sitemap.xml"
     sm = re.sub(r"  <url><loc>https://recruityard\.com/jobs/[^<]*</loc>.*?</url>\n", "", sitemap.read_text(encoding="utf-8"))
