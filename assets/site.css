@@ -120,6 +120,8 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
 .ry-job-back { display: inline-flex; gap: 6px; margin-bottom: 20px; font-size: 15px; font-weight: 600; color: var(--ry-purple); text-decoration: none; }
 .ry-job-back:hover { text-decoration: underline; }
 .ry-job > .ry-job-meta { font-size: 15px; margin-bottom: 24px; }
+/* Desktop: the job facts stay on one line, even a little wider than the text column. */
+@media (min-width: 1200px) { .ry-job > .ry-job-meta { flex-wrap: nowrap; width: max-content; white-space: nowrap; } }
 .ry-job-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 32px; }
 .ry-job-actions-end { margin: 40px 0 0; }
 .ry-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 32px; border-radius: 10px;
