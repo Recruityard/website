@@ -131,8 +131,8 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
 .ry-btn-ghost { background: transparent; color: var(--ry-purple); }
 .ry-btn-ghost:hover, .ry-btn-ghost:focus-visible { background: rgba(102, 72, 254, .08); border-color: var(--ry-purple); }
 .ry-job-body { font-size: 17px; line-height: 1.65; }
-.ry-job-body h2, .ry-job-body h3 { margin: 32px 0 12px; font-size: 24px; font-weight: 600; line-height: 1.25; color: #000; }
-.ry-job-body h3 { font-size: 20px; }
+.ry-job-body h2, .ry-job-body h3 { margin: 32px 0 12px; font-size: var(--ry-content-h2, 24px); font-weight: 600; line-height: 1.25; color: #000; }
+.ry-job-body h3 { font-size: var(--ry-content-h3, 20px); }
 .ry-job-body p { margin: 0 0 14px; }
 .ry-job-body ul, .ry-job-body ol { margin: 0 0 18px; padding-left: 22px; }
 .ry-job-body li { margin: 0 0 8px; }
@@ -172,7 +172,7 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
 .ry-consent-actions button:focus-visible, .ry-video-notice button:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
 .ry-consent-link [role="button"], .ry-consent-link[role="button"] { cursor: pointer; }
 [data-ry-consent-open] { cursor: pointer; }
-.ry-consent-cta { margin: 0 0 24px !important; }
+.ry-consent-cta { margin: 0 0 24px !important; font-size: 16px; }
 .ry-consent-open-btn { min-height: 48px; padding: 0 24px; border: 0; border-radius: 10px; background: #6648fe; color: #fff;
   font: 600 15px "Montserrat", sans-serif; }
 .ry-consent-open-btn:hover, .ry-consent-open-btn:focus-visible { background: #5235e8; outline: none; }
@@ -189,3 +189,68 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
 .ry-form-status { margin: 12px 0 0; font: 500 14px/1.4 "Montserrat", sans-serif; }
 .ry-form-status[data-state="ok"] { color: #1a7f37; }
 .ry-form-status[data-state="error"] { color: #c62828; }
+
+/* ---------- Type scale ----------
+   One set of sizes across the site (desktop ≥1200 / tablet 810–1199 / phone ≤809). Framer sets every text
+   size through --framer-font-size, so these rules override that variable on the exported text boxes. */
+:root {
+  --ry-title: 56px;      /* page title (H1) */
+  --ry-hero: 56px;       /* home headline */
+  --ry-band-title: 40px; /* title on the plain white header band (Find Jobs, Blog) */
+  --ry-section: 40px;    /* section heading (H2) */
+  --ry-article-title: 40px;
+  --ry-content-h2: 28px; /* headings inside long text (articles, legal pages) */
+  --ry-content-h3: 22px;
+  --ry-content-h4: 18px;
+  --ry-lead-h3: 28px;    /* About: large statement headings */
+  --ry-card-h4: 24px;    /* About: mission / vision */
+  --ry-small-h4: 22px;   /* About: values */
+  --ry-body: 17px;       /* long text */
+  --ry-intro: 16px;      /* subtitle under a band title */
+  --ry-label: 14px;      /* form labels, never below this */
+}
+@media (min-width: 810px) and (max-width: 1199px) {
+  :root { --ry-title: 44px; --ry-hero: 48px; --ry-band-title: 32px; --ry-section: 34px; --ry-article-title: 34px;
+    --ry-content-h2: 26px; --ry-content-h3: 20px; --ry-content-h4: 17px; --ry-lead-h3: 24px; --ry-card-h4: 22px; --ry-small-h4: 20px; }
+}
+@media (max-width: 809px) {
+  :root { --ry-title: 32px; --ry-hero: 40px; --ry-band-title: 28px; --ry-section: 28px; --ry-article-title: 28px;
+    --ry-content-h2: 22px; --ry-content-h3: 18px; --ry-content-h4: 17px; --ry-lead-h3: 22px; --ry-card-h4: 20px; --ry-small-h4: 18px;
+    --ry-body: 16px; --ry-intro: 15px; }
+}
+
+/* Page titles: Hire Talent, jobs list + job pages + Privacy (shared header), Terms, Cookie Policy, About, Contact */
+:is(.framer-1u2nqbw, .framer-1102lkt, .framer-f5u7d7, .framer-qclus2, .framer-hiyu5j, .framer-gy5qg7) h1 {
+  --framer-font-size: var(--ry-title) !important; --framer-line-height: 1.15em !important; }
+.framer-9hnqfx h1 { --framer-font-size: var(--ry-hero) !important; }
+:is(.framer-1o7zdn4, .framer-k4f47c) h1 { --framer-font-size: var(--ry-band-title) !important; }
+:is(.framer-m79qdy, .framer-1h0qyrj) p { --framer-font-size: var(--ry-intro) !important; }
+
+/* Section headings: home, Hire Talent, About */
+:is(.framer-1wkebh3, .framer-13tpsmm, .framer-1bv9b6j, .framer-1lyczsz, .framer-1kridno, .framer-dmotmn,
+    .framer-1humhw3, .framer-18y8k3x, .framer-gs6ttn, .framer-k7p7zd,
+    .framer-1t9sybz, .framer-idx4fs, .framer-bd3oks, .framer-b6u7od) h2 {
+  --framer-font-size: var(--ry-section) !important; --framer-line-height: 1.2em !important; }
+
+/* Text that wraps onto several lines needs a line height above its size (Framer had some at 1:1 or less):
+   About intro, home FAQ questions, Hire Talent service descriptions, footer column titles. */
+.framer-1gtjmgx p { --framer-line-height: 1.5em !important; }
+:is(.framer-1fsjlsc, .framer-1p6kh1, .framer-1dzqemg) p { --framer-line-height: 1.3em !important; }
+.framer-q3wois p { --framer-line-height: 1.5em !important; }
+
+/* About: statement headings, mission / vision, values */
+:is(.framer-1q1vad, .framer-1pzxhib) h3 { --framer-font-size: var(--ry-lead-h3) !important; --framer-line-height: 1.35em !important; }
+body:has(.framer-hiyu5j) h4[style*="--framer-font-size:28px"] { --framer-font-size: var(--ry-card-h4) !important; --framer-line-height: 1.35em !important; }
+body:has(.framer-hiyu5j) h4[style*="--framer-font-size:24px"] { --framer-font-size: var(--ry-small-h4) !important; --framer-line-height: 1.35em !important; }
+
+/* Long text: article bodies, Privacy (.framer-1k58ohx with headings, not the jobs intro), Terms, Cookie Policy */
+.framer-1yiuwep h1 { --framer-font-size: var(--ry-article-title) !important; }
+:is(.framer-b67ktd, .framer-1k58ohx:has(h2), .framer-1ein67h, .framer-nfo8t8) h2 { --framer-font-size: var(--ry-content-h2) !important; }
+:is(.framer-b67ktd, .framer-1k58ohx:has(h2), .framer-1ein67h, .framer-nfo8t8) h3 { --framer-font-size: var(--ry-content-h3) !important; }
+:is(.framer-b67ktd, .framer-1k58ohx:has(h2), .framer-1ein67h, .framer-nfo8t8) h4 { --framer-font-size: var(--ry-content-h4) !important; }
+:is(.framer-b67ktd, .framer-1k58ohx:has(h2), .framer-1ein67h, .framer-nfo8t8) :is(p, li),
+:is(.framer-b67ktd, .framer-1k58ohx:has(h2), .framer-1ein67h, .framer-nfo8t8) :is(p, li) :is(span, strong, em, a) {
+  --framer-font-size: var(--ry-body) !important; --framer-line-height: 1.6em !important; }
+
+/* Contact form labels and consent line */
+.framer-1u439mm :is(p, label) { --framer-font-size: var(--ry-label) !important; }
