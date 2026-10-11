@@ -262,12 +262,28 @@ def private_records() -> list[dict]:
         title = r.get("Posting_Title") or r.get("Job_Opening_Name") or ""
         r["$url"] = f"{ZOHO}/jobs/Careers/{r['id']}/{slugify(title)}?source=CareerSite"
     print(f"Zoho private API: {len(records)} job openings, {len(open_jobs)} published and open")
-    for r in open_jobs:  # what Zoho sends decides how well the description can be formatted
-        raw = r.get("Job_Description") or ""
-        kind = ("html" if re.search(r"<[a-zA-Z][^>]*>", raw) else
-                "plain text, line breaks" if "\n" in raw.strip() else "plain text, single line")
-        print(f"  description [{kind}] {r.get('Posting_Title')}: {raw[:100]!r}")
+    # The list endpoint flattens rich text to one line; a single-record GET may return the formatted text.
+    for r in open_jobs:
+        listed = r.get("Job_Description") or ""
+        try:
+            url = f"{ZOHO_API}/Job_Openings/{r['id']}"
+            req = urllib.request.Request(url, headers={**UA, "Authorization": f"Zoho-oauthtoken {token}"})
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                full = ((json.loads(resp.read().decode("utf-8")).get("data") or [{}])[0].get("Job_Description")) or ""
+        except Exception as e:
+            print(f"  ! record GET failed for {r.get('Posting_Title')}: {e}", file=sys.stderr)
+            full = ""
+        if description_kind(full) != "plain text, single line":
+            r["Job_Description"] = full
+        print(f"  description list=[{description_kind(listed)}] record=[{description_kind(full)}] "
+              f"{r.get('Posting_Title')}: {full[:100]!r}")
     return open_jobs
+
+
+def description_kind(raw: str) -> str:
+    if re.search(r"<[a-zA-Z][^>]*>", raw or ""):
+        return "html"
+    return "plain text, line breaks" if "\n" in (raw or "").strip() else "plain text, single line"
 
 
 def parse_date(value) -> dt.date | None:
