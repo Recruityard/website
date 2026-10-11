@@ -9,6 +9,7 @@ tools/zoho_token.py. If the API fails the script exits non-zero and leaves the p
 Writes:
   jobs.html          job cards between the JOBS markers (the rest of the page is left alone)
   jobs/<slug>.html   one page per open position (closed positions are removed)
+  jobs/rss.xml       RSS 2.0 feed of the open positions
   sitemap.xml        job URLs refreshed
 
 Uses only the Python standard library. Run daily by .github/workflows/jobs.yml.
@@ -16,6 +17,7 @@ Uses only the Python standard library. Run daily by .github/workflows/jobs.yml.
 from __future__ import annotations
 
 import datetime as dt
+import email.utils
 import html
 import json
 import os
@@ -30,8 +32,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ZOHO = "https://recruityard.zohorecruit.eu"
 BASE = "https://recruityard.com"
+# Where the pages are served today; the RSS feed needs links that resolve (recruityard.com doesn't serve
+# this site yet). Set SITE_URL, or change this default, when the domain points at the site.
+SITE_URL = os.environ.get("SITE_URL", "https://recruityard.github.io/website").rstrip("/")
 LISTING = ROOT / "jobs.html"
 JOBS_DIR = ROOT / "jobs"
+RSS = JOBS_DIR / "rss.xml"
 START, END = "<!-- JOBS:START -->", "<!-- JOBS:END -->"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; RecruityardSiteBuilder/1.0)"}
 
@@ -480,6 +486,62 @@ def job_jsonld(j: dict) -> str:
     return json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
 
 
+FEED_LOGO = "assets/media/bPPqciueo2HHJROfIlp9nEAfJ8-d8c7a1-512.png"
+
+
+def rfc822(day: dt.date) -> str:
+    """RSS dates: RFC 822 with a numeric zone. Job dates have no time, so noon UTC."""
+    return email.utils.format_datetime(dt.datetime(day.year, day.month, day.day, 12, tzinfo=dt.timezone.utc))
+
+
+def cdata(text: str) -> str:
+    return "<![CDATA[" + text.replace("]]>", "]]]]><![CDATA[>") + "]]>"
+
+
+def render_rss(jobs: list[dict]) -> str:
+    """RSS 2.0 feed of the open jobs, built from the Job model only (no ATS fields), so it keeps working
+    when the ATS changes. Links point at our job pages. lastBuildDate is the newest job's date rather
+    than the build time, so the file only changes when the jobs do."""
+    x = lambda s: html.escape(str(s), quote=False)
+    listing, self_url = f"{SITE_URL}/jobs.html", f"{SITE_URL}/jobs/rss.xml"
+    newest = max((j["opened"] for j in jobs if j["opened"]), default=None)
+    items = []
+    for j in jobs:
+        url = f"{SITE_URL}/jobs/{j['slug']}.html"
+        place = ("Remote · " if j["remote"] else "") + j["location"] if j["location"] else ("Remote" if j["remote"] else "")
+        facts = [t for t in (place, j["type"], j["industry"], f"Salary: {j['salary']}" if j["salary"] else "") if t]
+        categories = [t for t in (j["industry"], j["type"], j["city"], "Remote" if j["remote"] else "") if t]
+        content = (f"<p><strong>{x(' · '.join(facts))}</strong></p>" if facts else "") + j["description"] + \
+            f'<p><a href="{x(url)}">View the job and apply</a></p>'
+        items.append(
+            "<item>"
+            f"<title>{x(j['title'])}</title>"
+            f"<link>{x(url)}</link>"
+            f'<guid isPermaLink="true">{x(url)}</guid>'
+            + (f"<pubDate>{rfc822(j['opened'])}</pubDate>" if j["opened"] else "")
+            + "".join(f"<category>{x(c)}</category>" for c in categories)
+            + f"<description>{x(' · '.join(facts) + (' — ' if facts else '') + plain(j['description'], 300))}</description>"
+            f"<content:encoded>{cdata(content)}</content:encoded>"
+            "</item>"
+        )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">\n'
+        "<channel>"
+        "<title>Recruityard – Open positions</title>"
+        f"<link>{listing}</link>"
+        f'<atom:link href="{self_url}" rel="self" type="application/rss+xml"/>'
+        "<description>Current job openings from Recruityard. We see your potential. "
+        "The world will see your impact.</description>"
+        "<language>en</language>"
+        + (f"<lastBuildDate>{rfc822(newest)}</lastBuildDate>" if newest else "")
+        + "<ttl>180</ttl>"
+        f"<image><url>{SITE_URL}/{FEED_LOGO}</url><title>Recruityard – Open positions</title><link>{listing}</link></image>"
+        + "\n" + "\n".join(items) + "\n"
+        "</channel></rss>\n"
+    )
+
+
 def render_job(j: dict) -> str:
     apply = (f'<a class="ry-btn" href="{esc(j["apply"])}" rel="noopener">Apply now</a>')
     return (
@@ -551,6 +613,8 @@ def main() -> int:
         if old.name not in keep:
             old.unlink()
             print("  removed", old.relative_to(ROOT))
+    RSS.write_text(render_rss(jobs), encoding="utf-8", newline="")
+    print("  ", RSS.relative_to(ROOT))
 
     sitemap = ROOT / "sitemap.xml"
     sm = re.sub(r"  <url><loc>https://recruityard\.com/jobs/[^<]*</loc>.*?</url>\n", "", sitemap.read_text(encoding="utf-8"))

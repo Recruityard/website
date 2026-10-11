@@ -20,7 +20,7 @@ mirrors them and candidates apply on Zoho's careers pages.
 | Job pages + listing | `jobs.html`, `jobs/*.html` | Generated daily by `tools/build_jobs.py` from the Zoho Recruit private API (see below). No visitor data involved. |
 | "Apply now" buttons | `jobs/*.html` | Link to the job's page on `recruityard.zohorecruit.eu` (application form) |
 | "Featured jobs" widget | `index.html`, `find-jobs.html` | Zoho embed script (`static.zohocdn.com/recruit/embed_careers_site/…/embed_jobs.js`) inside an isolated `<iframe srcdoc>`, page `Hot-Openings` |
-| RSS / XML job feeds | footer links | Links only |
+| XML job feed | footer link | Link only (the footer "RSS Feed" link uses the site's own `jobs/rss.xml`) |
 
 Dashboard: https://recruit.zoho.eu (careers site settings, "Publish" / "Hot openings" flags).
 

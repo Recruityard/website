@@ -17,6 +17,7 @@ Code: [`tools/build_jobs.py`](../tools/build_jobs.py) · Workflow: [`.github/wor
 │                      │   │        └─► load_jobs() ──► Job model ────────┼──►│ jobs/<slug>.html (1 per job)│
 │                      │   │            (normalise)                       │   │ JSON-LD JobPosting (Google) │
 └──────────────────────┘   └──────────────────────────────────────────────┘   │ sitemap.xml entries         │
+                                                                              │ jobs/rss.xml (RSS 2.0)      │
                                                                               └─────────────────────────────┘
 ```
 
@@ -102,6 +103,8 @@ target date, required skills, client name, custom fields. Ask for a field → ad
 
 ## 4. Where each field appears on the website
 
+The RSS feed `jobs/rss.xml` (`render_rss()`) is built from the Job model too, so it survives an ATS change. Per job: `title`; link and `guid` = the job page URL (`SITE_URL` + `jobs/<slug>.html`); `pubDate` = `opened`; `category` = `industry`, `type`, `city`, "Remote"; `description` = location · type · industry · salary + first 300 characters; `content:encoded` = the same facts + full `description` + link to the job page. The channel's `lastBuildDate` is the newest `opened`, so the file only changes when the jobs do. `SITE_URL` defaults to `https://recruityard.github.io/website`; change it when recruityard.com serves the site.
+
 | Job model | Job card (`jobs.html`) | Job page (`jobs/<slug>.html`) | Google JobPosting (JSON-LD) | Other |
 |---|---|---|---|---|
 | `id` | — | — | `identifier.value` | duplicate-slug suffix |
@@ -127,7 +130,7 @@ Rendering code: `render_listing()` (cards), `render_job()` + `meta_items()` (job
 | Where | What | ATS-specific? |
 |---|---|---|
 | `index.html`, `about-us.html`, `find-jobs.html` | "Featured jobs" widget: Zoho embed script (`static.zohocdn.com/.../embed_jobs.js`, page `Hot-Openings`) inside `<iframe srcdoc>` | **yes** — replace with the new ATS widget, or with cards generated like `jobs.html` |
-| Footer (most pages) | "RSS Feed" → `recruityard.zohorecruit.eu/jobs/Careers/rss`; "XML Feed" → `recruit.zoho.eu/recruit/downloadjobfeed?clientid=…` | **yes** — point to the new ATS feeds or remove |
+| Footer (most pages) | "RSS Feed" → our `jobs/rss.xml` (no change needed); "XML Feed" → `recruit.zoho.eu/recruit/downloadjobfeed?clientid=…` | **yes** — point to the new ATS feeds or remove |
 | `jobs/*.html` | "Apply now" → Zoho application form | via `apply` |
 | `privacy-policy.html` | Legal text naming Zoho as processor | **yes** — legal update needed |
 | `docs/services/zoho-recruit.md`, `docs/cookies.md` | Service + cookie registers | **yes** |
@@ -164,7 +167,7 @@ The new ATS must offer, through an API or public feed:
    Google [Rich Results Test](https://search.google.com/test/rich-results) on one job page.
 
 ### Everything else
-- [ ] Replace or remove the "Featured jobs" widget and footer RSS/XML links (section 5).
+- [ ] Replace or remove the "Featured jobs" widget and footer XML Feed link (section 5); the RSS Feed link already uses our own feed.
 - [ ] Redirect old apply links? Old Zoho URLs in Google/LinkedIn shares will stop working once Zoho is closed.
 - [ ] **Job URLs** (`jobs/<slug>.html`) stay the same if titles stay the same — good for SEO.
 - [ ] Update `docs/services/` (new ATS file, mark Zoho removed), `docs/cookies.md`, Privacy Policy.
