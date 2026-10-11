@@ -123,6 +123,7 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
 .ry-job-body li::marker { color: var(--ry-purple); }
 @media (max-width: 809px) {
   .ry-job-list { grid-template-columns: 1fr; }
+  .ry-job-card-text { display: none; }
   .ry-job-body { font-size: 16px; }
   .ry-btn { width: 100%; }
 }
