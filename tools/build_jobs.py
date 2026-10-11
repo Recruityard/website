@@ -350,9 +350,9 @@ fmt_date = lambda d: d.strftime("%d %b %Y") if d else ""
 
 def meta_items(j: dict, full: bool) -> str:
     items = [("pin", ("Remote · " if j["remote"] else "") + j["location"] if j["location"] else ("Remote" if j["remote"] else ""))]
-    items += [("clock", j["type"]), ("star", j["experience"])]
+    items += [("clock", j["type"])]
     if full:
-        items += [("tag", j["industry"]), ("coin", j["salary"]), ("cal", f"Posted {fmt_date(j['opened'])}" if j["opened"] else "")]
+        items += [("star", j["experience"]), ("tag", j["industry"]), ("coin", j["salary"]), ("cal", f"Posted {fmt_date(j['opened'])}" if j["opened"] else "")]
     return "".join(f'<li>{ICON[i]}<span>{esc(t)}</span></li>' for i, t in items if t)
 
 
