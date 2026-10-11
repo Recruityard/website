@@ -145,7 +145,10 @@
   const addSettingsLinks = () => {
     document.querySelectorAll('a[href*="cookie-policy.html"]').forEach((a) => {
       if (!/cookie/i.test(a.textContent) || a.closest('.ry-consent')) return;
-      const host = a.closest('p') || a;
+      // A footer link has its own text box in the row of links: copy the whole box so the new link
+      // sits beside the others. A link inside running text only gets its paragraph copied.
+      const box = a.closest('[data-framer-component-type="RichTextContainer"]');
+      const host = (box && box.textContent.trim() === a.textContent.trim() ? box : null) || a.closest('p') || a;
       if (host.nextElementSibling?.classList.contains('ry-consent-link')) return;
       const copy = host.cloneNode(true);
       copy.classList.add('ry-consent-link');
