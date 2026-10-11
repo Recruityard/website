@@ -281,28 +281,76 @@
     });
   });
 
-  /* ---------- Job listing search / remote filter (jobs.html) ---------- */
-  const jobList = document.querySelector('.ry-job-list');
-  if (jobList) {
-    const q = document.getElementById('ry-job-q');
-    const remoteOnly = document.getElementById('ry-job-remote');
-    const count = document.querySelector('.ry-jobs-count');
-    const empty = document.querySelector('.ry-jobs-empty');
-    const cards = [...jobList.children];
-    const filter = () => {
-      const terms = q.value.toLowerCase().split(/\s+/).filter(Boolean);
+  /* ---------- Job listing search / remote / filter groups (jobs.html) ----------
+     Options in one group widen the results (Lisboa or Porto); groups narrow each other (Lisboa and
+     Customer Service). Each option's count is what you'd get by ticking it, given everything else. */
+  if (document.querySelector('.ry-job-list')) {
+    const wide = window.matchMedia('(min-width: 810px)');
+
+    const filterJobs = () => {
+      const list = document.querySelector('.ry-job-list');
+      if (!list) return;
+      const q = document.getElementById('ry-job-q');
+      const remoteOnly = document.getElementById('ry-job-remote');
+      const terms = (q?.value || '').toLowerCase().split(/\s+/).filter(Boolean);
+      const groups = [...document.querySelectorAll('.ry-facet')].map((el) => ({
+        key: el.dataset.facet,
+        boxes: [...el.querySelectorAll('input[type="checkbox"]')],
+      }));
+      const groupMatch = (card, group) => {
+        const picked = group.boxes.filter((b) => b.checked).map((b) => b.value);
+        return !picked.length || picked.includes(card.dataset[group.key]);
+      };
+      const cards = [...list.children];
+      const base = cards.map((card) => (!remoteOnly?.checked || card.dataset.remote === 'true')
+        && terms.every((t) => card.dataset.search.includes(t)));
+
       let shown = 0;
-      cards.forEach((card) => {
-        const match = (!remoteOnly.checked || card.dataset.remote === 'true')
-          && terms.every((t) => card.dataset.search.includes(t));
+      cards.forEach((card, i) => {
+        const match = base[i] && groups.every((g) => groupMatch(card, g));
         card.hidden = !match;
         if (match) shown += 1;
       });
-      count.textContent = `${shown} open position${shown === 1 ? '' : 's'}`;
-      empty.hidden = shown > 0;
+      groups.forEach((group) => {
+        const others = groups.filter((g) => g !== group);
+        group.boxes.forEach((box) => {
+          const n = cards.filter((card, i) => base[i] && card.dataset[group.key] === box.value
+            && others.every((g) => groupMatch(card, g))).length;
+          box.parentElement.querySelector('.ry-facet-n').textContent = n;
+          box.disabled = n === 0 && !box.checked;
+        });
+      });
+      const ticked = groups.reduce((sum, g) => sum + g.boxes.filter((b) => b.checked).length, 0);
+      const active = document.querySelector('.ry-facets-active');
+      const clear = document.querySelector('.ry-facets-clear');
+      const count = document.querySelector('.ry-jobs-count');
+      const empty = document.querySelector('.ry-jobs-empty');
+      if (active) active.textContent = ticked ? `(${ticked})` : '';
+      if (clear) clear.hidden = ticked === 0;
+      if (count) count.textContent = `${shown} open position${shown === 1 ? '' : 's'}`;
+      if (empty) empty.hidden = shown > 0;
     };
-    q.addEventListener('input', filter);
-    remoteOnly.addEventListener('change', filter);
+
+    // Filters stay open beside the list on wide screens and fold into a "Filters" button on phones.
+    const syncPanel = () => {
+      const panel = document.querySelector('.ry-facets');
+      if (panel) panel.open = wide.matches;
+    };
+    wide.addEventListener('change', syncPanel);
+
+    document.addEventListener('input', (e) => {
+      if (e.target.id === 'ry-job-q') filterJobs();
+    });
+    document.addEventListener('change', (e) => {
+      if (e.target.id === 'ry-job-remote' || e.target.closest('.ry-facet')) filterJobs();
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.ry-facets-clear')) return;
+      document.querySelectorAll('.ry-facet input[type="checkbox"]').forEach((b) => { b.checked = false; });
+      filterJobs();
+    });
+    syncPanel();
+    filterJobs();
   }
 
   /* ---------- YouTube videos (blog articles) ----------

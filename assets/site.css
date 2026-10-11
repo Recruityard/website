@@ -79,10 +79,24 @@ header.ry-sticky.framer-HmSbA.framer-v-g3nlef { position: fixed !important; } /*
 .ry-jobs-remote { display: inline-flex; gap: 8px; align-items: center; font-size: 15px; font-weight: 500; cursor: pointer; }
 .ry-jobs-remote input { width: 18px; height: 18px; accent-color: var(--ry-purple); }
 .ry-jobs-count { margin: 0 0 16px; font-size: 14px; font-weight: 600; color: var(--ry-muted); }
+.ry-jobs-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 32px; align-items: start; }
+.ry-jobs-layout:not(:has(.ry-facets)) { grid-template-columns: minmax(0, 1fr); }
+.ry-facets { position: sticky; top: 120px; padding: 20px; background: #fff; border: 1px solid rgba(0, 0, 0, .1); border-radius: 16px; }
+.ry-facets > summary { display: none; }
+.ry-facet { margin: 0 0 20px; padding: 0; border: 0; min-width: 0; }
+.ry-facet legend { margin: 0 0 10px; padding: 0; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ry-ink); }
+.ry-facet-option { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 15px; cursor: pointer; }
+.ry-facet-option input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--ry-purple); cursor: pointer; }
+.ry-facet-option span:first-of-type { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.ry-facet-n { flex: none; min-width: 24px; padding: 1px 8px; border-radius: 999px; background: rgba(102, 72, 254, .08); color: var(--ry-purple);
+  font-size: 13px; font-weight: 600; text-align: center; }
+.ry-facet-option:has(input:disabled) { opacity: .4; cursor: default; }
+.ry-facets-clear { padding: 0; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--ry-purple); cursor: pointer; }
+.ry-facets-clear:hover { text-decoration: underline; }
 .ry-jobs-empty { margin: 24px 0; font-size: 16px; }
 .ry-jobs-empty a, .ry-job-body a { color: var(--ry-purple); }
 
-.ry-job-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin: 0; padding: 0; list-style: none; }
+.ry-job-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 20px; margin: 0; padding: 0; list-style: none; }
 .ry-job-card[hidden] { display: none; }
 .ry-job-card a { display: flex; flex-direction: column; gap: 12px; height: 100%; box-sizing: border-box; padding: 24px;
   background: #fff; border: 1px solid rgba(0, 0, 0, .1); border-radius: 16px; color: inherit; text-decoration: none;
@@ -124,6 +138,14 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
 @media (max-width: 809px) {
   .ry-job-list { grid-template-columns: 1fr; }
   .ry-job-card-text { display: none; }
+  .ry-jobs-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .ry-facets { position: static; padding: 0; }
+  .ry-facets > summary { display: flex; align-items: center; gap: 6px; padding: 14px 18px; font-size: 15px; font-weight: 600; cursor: pointer; list-style: none; }
+  .ry-facets > summary::-webkit-details-marker { display: none; }
+  .ry-facets > summary::after { content: "▾"; margin-left: auto; color: var(--ry-purple); }
+  .ry-facets[open] > summary::after { content: "▴"; }
+  .ry-facets[open] { padding-bottom: 16px; }
+  .ry-facets .ry-facet, .ry-facets .ry-facets-clear { margin-left: 18px; margin-right: 18px; }
   .ry-job-body { font-size: 16px; }
   .ry-btn { width: 100%; }
 }

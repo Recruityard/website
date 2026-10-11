@@ -361,7 +361,8 @@ def render_listing(jobs: list[dict]) -> str:
     for j in jobs:
         search = " ".join([j["title"], j["location"], j["industry"], j["type"], "remote" if j["remote"] else ""]).lower()
         cards.append(
-            f'<li class="ry-job-card" data-search="{esc(search)}" data-remote="{str(j["remote"]).lower()}">'
+            f'<li class="ry-job-card" data-search="{esc(search)}" data-remote="{str(j["remote"]).lower()}" '
+            f'data-city="{esc(j["city"])}" data-industry="{esc(j["industry"])}" data-type="{esc(j["type"])}">'
             f'<a href="./jobs/{j["slug"]}.html">'
             f'<h2 class="ry-job-card-title">{esc(j["title"])}</h2>'
             f'<ul class="ry-job-meta">{meta_items(j, full=False)}</ul>'
@@ -378,11 +379,45 @@ def render_listing(jobs: list[dict]) -> str:
         '<input id="ry-job-q" type="search" placeholder="Search by job title, language or location" autocomplete="off"/>'
         '<label class="ry-jobs-remote"><input id="ry-job-remote" type="checkbox"/> Remote only</label>'
         "</form>"
+        '<div class="ry-jobs-layout">'
+        f"{render_facets(jobs)}"
+        '<div class="ry-jobs-results">'
         f'<p class="ry-jobs-count" aria-live="polite" data-total="{len(jobs)}">{count}</p>'
         f'<ul class="ry-job-list">{"".join(cards)}</ul>'
         '<p class="ry-jobs-empty" hidden>No positions match your search. '
         '<a href="./contact-us.html">Get in touch</a> and tell us what you’re looking for.</p>'
+        "</div></div>"
         "</section>"
+    )
+
+
+FACETS = (("city", "Location"), ("industry", "Industry"), ("type", "Job type"))  # card data-* key, heading
+
+
+def render_facets(jobs: list[dict]) -> str:
+    """Filter groups built from the jobs themselves (most common option first). A group with fewer
+    than two options filters nothing, so it is left out until a second value appears in Zoho."""
+    groups = []
+    for key, heading in FACETS:
+        counts: dict[str, int] = {}
+        for j in jobs:
+            if j[key]:
+                counts[j[key]] = counts.get(j[key], 0) + 1
+        if len(counts) < 2:
+            continue
+        options = "".join(
+            f'<label class="ry-facet-option"><input type="checkbox" value="{esc(value)}"/>'
+            f'<span>{esc(value)}</span><span class="ry-facet-n">{n}</span></label>'
+            for value, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
+        groups.append(f'<fieldset class="ry-facet" data-facet="{key}"><legend>{heading}</legend>{options}</fieldset>')
+    if not groups:
+        return ""
+    return (
+        '<details class="ry-facets">'
+        '<summary>Filters <span class="ry-facets-active"></span></summary>'
+        f'{"".join(groups)}'
+        '<button type="button" class="ry-facets-clear" hidden>Clear filters</button>'
+        "</details>"
     )
 
 
