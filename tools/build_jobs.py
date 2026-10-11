@@ -10,6 +10,7 @@ Writes:
   jobs.html          job cards between the JOBS markers (the rest of the page is left alone)
   jobs/<slug>.html   one page per open position (closed positions are removed)
   jobs/rss.xml       RSS 2.0 feed of the open positions
+  jobs/feed.xml      XML job feed for job boards (Indeed format), downloaded from the footer
   sitemap.xml        job URLs refreshed
 
 Uses only the Python standard library. Run daily by .github/workflows/jobs.yml.
@@ -38,6 +39,7 @@ SITE_URL = os.environ.get("SITE_URL", "https://recruityard.github.io/website").r
 LISTING = ROOT / "jobs.html"
 JOBS_DIR = ROOT / "jobs"
 RSS = JOBS_DIR / "rss.xml"
+JOB_FEED = JOBS_DIR / "feed.xml"
 START, END = "<!-- JOBS:START -->", "<!-- JOBS:END -->"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; RecruityardSiteBuilder/1.0)"}
 
@@ -545,16 +547,74 @@ def render_rss(jobs: list[dict], built: dt.datetime) -> str:
     )
 
 
-def write_rss(jobs: list[dict]) -> bool:
-    """Write jobs/rss.xml only when its content changed, stamping lastBuildDate with the build time.
+def write_feed(path: Path, render, jobs: list[dict]) -> bool:
+    """Write a feed only when its content changed, stamping lastBuildDate with the build time.
     An unchanged feed keeps its file (and date), so a refresh without job changes commits nothing."""
     without_date = lambda s: re.sub(r"<lastBuildDate>[^<]*</lastBuildDate>", "", s)
-    new = render_rss(jobs, dt.datetime.now(dt.timezone.utc).replace(microsecond=0))
-    old = RSS.read_text(encoding="utf-8") if RSS.exists() else ""
+    new = render(jobs, dt.datetime.now(dt.timezone.utc).replace(microsecond=0))
+    old = path.read_text(encoding="utf-8") if path.exists() else ""
     if old and without_date(old) == without_date(new):
         return False
-    RSS.write_text(new, encoding="utf-8", newline="")
+    path.write_text(new, encoding="utf-8", newline="")
     return True
+
+
+def write_rss(jobs: list[dict]) -> bool:
+    return write_feed(RSS, render_rss, jobs)
+
+
+# ---- XML job feed for job boards (Indeed XML format, also read by Jooble, Adzuna, Careerjet, Talent.com...)
+
+COUNTRY_CODES = {"portugal": "PT", "spain": "ES", "greece": "GR", "bulgaria": "BG", "bulgária": "BG",
+                 "poland": "PL", "italy": "IT", "france": "FR", "germany": "DE", "netherlands": "NL"}
+FEED_JOB_TYPES = {"full time": "fulltime", "part time": "parttime", "contract": "contract",
+                  "temporary": "temporary", "internship": "internship"}
+
+
+def feed_salary(j: dict) -> str:
+    """"1087 - 1227" -> "EUR 1087 - 1227 per month"; free text that can't be parsed is passed through."""
+    money = base_salary(j["salary"], j["currency"]) if j["salary"] else None
+    if not money:
+        return j["salary"]
+    v = money["value"]
+    num = lambda n: f"{n:g}"
+    amount = f"{num(v['minValue'])} - {num(v['maxValue'])}" if "minValue" in v else num(v["value"])
+    return f"{money['currency']} {amount} per month"
+
+
+def render_job_feed(jobs: list[dict], built: dt.datetime) -> str:
+    """Downloadable XML job feed (Indeed XML format), built from the Job model only (no ATS fields).
+    referencenumber is the ATS job id: stable while the ATS stays, new ids after an ATS change mean
+    job boards repost the jobs once. Links point at our job pages."""
+    c = lambda s: cdata(str(s))
+    jobs_xml = []
+    for j in jobs:
+        fields = [
+            ("title", j["title"]),
+            ("date", rfc822(j["opened"]) if j["opened"] else ""),
+            ("referencenumber", j["id"]),
+            ("url", f"{SITE_URL}/jobs/{j['slug']}.html"),
+            ("company", "Recruityard"),
+            ("city", j["city"]),
+            ("state", j["state"]),
+            ("country", COUNTRY_CODES.get(j["country"].strip().lower(), j["country"])),
+            ("description", j["description"]),
+            ("salary", feed_salary(j)),
+            ("jobtype", FEED_JOB_TYPES.get(j["type"].strip().lower(), j["type"].lower())),
+            ("category", j["industry"]),
+            ("experience", j["experience"]),
+            ("remotetype", "Fully remote" if j["remote"] else ""),
+        ]
+        jobs_xml.append("<job>" + "".join(f"<{k}>{c(v)}</{k}>" for k, v in fields if v) + "</job>")
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        "<source>"
+        "<publisher>Recruityard</publisher>"
+        f"<publisherurl>{SITE_URL}/jobs.html</publisherurl>"
+        f"<lastBuildDate>{rfc822(built)}</lastBuildDate>"
+        + "\n" + "\n".join(jobs_xml) + "\n"
+        "</source>\n"
+    )
 
 
 def render_job(j: dict) -> str:
@@ -629,6 +689,7 @@ def main() -> int:
             old.unlink()
             print("  removed", old.relative_to(ROOT))
     print("  ", RSS.relative_to(ROOT), "" if write_rss(jobs) else "(unchanged)")
+    print("  ", JOB_FEED.relative_to(ROOT), "" if write_feed(JOB_FEED, render_job_feed, jobs) else "(unchanged)")
 
     sitemap = ROOT / "sitemap.xml"
     sm = re.sub(r"  <url><loc>https://recruityard\.com/jobs/[^<]*</loc>.*?</url>\n", "", sitemap.read_text(encoding="utf-8"))

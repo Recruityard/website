@@ -6,7 +6,6 @@ Remove Find Jobs across countries
 Provicy Policy,
 Terms & Conditions
 Cookies Policy
-I'm a candidate
 
 Set default country selection when Portugal, Bulgaria, Spain or Greece is selected in Locations we recruit for or footer.
  
