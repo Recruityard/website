@@ -319,6 +319,8 @@ def load_jobs() -> list[dict]:
             "city": j.get("City") or "", "state": j.get("State") or "", "country": j.get("Country") or "Portugal",
             "type": j.get("Job_Type") or "", "experience": j.get("Work_Experience") or "",
             "industry": j.get("Industry") or "", "opened": parse_date(j.get("Date_Opened")),
+            "target": parse_date(j.get("Target_Date")),
+            "currency": c if re.fullmatch(r"[A-Z]{3}", c := str(j.get("Currency") or "").strip()) else "EUR",
         })
     jobs.sort(key=lambda x: (x["opened"] or dt.date.min, x["title"]), reverse=True)
     return jobs
@@ -384,6 +386,33 @@ def render_listing(jobs: list[dict]) -> str:
     )
 
 
+def base_salary(text: str, currency: str) -> dict | None:
+    """Zoho's Salary is free text ("1087 - 1227", "1200-2000", "1100", "€920"): monthly gross in Portugal."""
+    nums = []
+    for n in re.findall(r"\d[\d.,]*\d|\d", text):
+        if re.fullmatch(r"\d{1,3}(?:[.,]\d{3})+", n):   # 1.200 / 1,200 (thousands separator)
+            n = re.sub(r"[.,]", "", n)
+        nums.append(float(n.replace(",", ".")))
+    if not nums or len(nums) > 2:
+        return None
+    value = {"@type": "QuantitativeValue", "unitText": "MONTH"}
+    if len(nums) == 2:
+        value.update(minValue=min(nums), maxValue=max(nums))
+    else:
+        value["value"] = nums[0]
+    return {"@type": "MonetaryAmount", "currency": currency, "value": value}
+
+
+def valid_through(target: dt.date | None) -> dt.date:
+    """Zoho's target date when still ahead; otherwise the end of next month (stable for a month, so the
+    pages don't change every day). Closed jobs lose their page at the next refresh anyway."""
+    today = dt.date.today()
+    if target and target > today:
+        return target
+    first_of_next = (today.replace(day=1) + dt.timedelta(days=32)).replace(day=1)
+    return (first_of_next + dt.timedelta(days=32)).replace(day=1) - dt.timedelta(days=1)
+
+
 def job_jsonld(j: dict) -> str:
     data = {
         "@context": "https://schema.org",
@@ -399,6 +428,10 @@ def job_jsonld(j: dict) -> str:
     }
     if j["opened"]:
         data["datePosted"] = j["opened"].isoformat()
+    data["validThrough"] = valid_through(j["target"]).isoformat()
+    salary = base_salary(j["salary"], j["currency"])
+    if salary:
+        data["baseSalary"] = salary
     address = {"@type": "PostalAddress", "addressCountry": j["country"] or "Portugal"}
     if j["city"]:
         address["addressLocality"] = j["city"]

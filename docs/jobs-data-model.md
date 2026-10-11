@@ -73,7 +73,7 @@ ads written as lines with "- " bullets and "**Label:**" lines are turned into re
 | `id` | `id` | as text |
 | `title` | `Posting_Title` (fallback `Job_Opening_Name`) | trimmed |
 | `apply` | — *(not in API)* → built as `https://recruityard.zohorecruit.eu/jobs/Careers/<id>/<slug>?source=CareerSite` | — |
-| `description` | `Job_Description` (HTML) | `clean_description()` |
+| `description` | `Job_Description` from `GET /Job_Openings/{id}` (HTML). The list endpoint flattens it to one plain line, so each open job is fetched individually. | `clean_description()` |
 | `city` | `City` | — |
 | `state` | `State` | — |
 | `country` | `Country` | default "Portugal" |
@@ -84,6 +84,8 @@ ads written as lines with "- " bullets and "**Label:**" lines are turned into re
 | `industry` | `Industry` | — |
 | `salary` | `Salary` | trimmed |
 | `opened` | `Date_Opened` (`YYYY-MM-DD`) | `parse_date()` |
+| `target` | `Target_Date` (`YYYY-MM-DD`) | JSON-LD `validThrough` if still ahead; otherwise the end of next month (`valid_through()`) |
+| `currency` | `Currency` | 3-letter code, default `EUR`; used with `salary` for JSON-LD `baseSalary` (monthly, `base_salary()`) |
 
 ### Which jobs are published
 
