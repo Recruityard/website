@@ -7,8 +7,8 @@ partial goes with <!-- partial:NAME --> ... <!-- /partial:NAME --> (NAME = file 
 .html); everything between the two markers is replaced. The element around the markers stays
 the page's own, because its classes and size come from that page's Framer CSS.
 
-Links in partials are written from the site root (./about-us.html); pages in a sub-folder get
-../ instead. Page links carry data-framer-page-link-current="true" in the partial (Framer colours
+Links in partials are written from the site root (./about-us.html, and ./ for the home page);
+pages in a sub-folder get ../ instead. Page links carry data-framer-page-link-current="true" in the partial (Framer colours
 the current page's link); each page keeps it only on links to itself. Leave it off links that
 should never be highlighted, such as placeholders pointing at the home page.
 """
@@ -25,7 +25,7 @@ NAV_LINK = re.compile(r'<a\s[^>]*' + CURRENT + r'[^>]*href="\./([^"]*)"[^>]*>')
 
 def render(partial: str, page: Path) -> str:
     rel = page.relative_to(ROOT).as_posix()
-    html = NAV_LINK.sub(lambda m: m.group(0) if m.group(1) == rel else m.group(0).replace(CURRENT, ""), partial)
+    html = NAV_LINK.sub(lambda m: m.group(0) if (m.group(1) or "index.html") == rel else m.group(0).replace(CURRENT, ""), partial)
     depth = len(page.relative_to(ROOT).parts) - 1
     if depth:
         html = re.sub(r'(?<=["\'(,\s])\./', "../" * depth, html)
