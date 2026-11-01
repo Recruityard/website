@@ -20,6 +20,9 @@ contact-us.html           Contact form (Web3Forms)
 privacy-policy.html, cookie-policy.html, terms-and-conditions.html
 404.html                  Shown by GitHub Pages for unknown URLs
 
+partials/                 Shared header, mobile menu and footer (copied into every page)
+tools/build_partials.py   Copies partials/ into every page
+
 assets/
   site.css                Interactive styles: menu, FAQ, slideshow, form
   site.js                 Interactive behaviour: menu, FAQ, slideshow, form, button links
@@ -54,8 +57,27 @@ internal links point at real `.html` files.
   2560px on the long side and compress them (JPEG quality ~80).
 - **Contact form**: submissions go to [Web3Forms](https://web3forms.com). The public access key
   is the `access_key` input in `contact-us.html`. hCaptcha is required by the Web3Forms settings.
-- **FAQ answers / mobile menu**: FAQ answers are inline in `index.html`; the open mobile-menu
-  layout is the `<template id="ry-menu">` at the end of each page.
+- **Header, mobile menu, footer**: edit them only in `partials/`, never in a page (see below).
+- **FAQ answers**: inline in `index.html`.
+
+## After editing the header, mobile menu or footer
+
+Edit `partials/*.html`, then run `python tools/build_partials.py`. It copies each partial into
+every page, between the `<!-- partial:NAME -->` / `<!-- /partial:NAME -->` markers. Anything
+edited between those markers in a page is overwritten.
+
+| Partial | What it is |
+| --- | --- |
+| `header-desktop.html`, `header-mobile.html` | Top navigation bar (desktop / phone layouts) |
+| `menu.html` | Open mobile menu (`<template id="ry-menu">`) |
+| `footer-desktop.html`, `footer-tablet.html`, `footer-phone.html` | Footer, one per layout |
+
+- Write links from the site root (`./about-us.html`); pages in `articles/` and `jobs/` get `../`
+  automatically.
+- A page link that should be highlighted on its own page carries
+  `data-framer-page-link-current="true"` in the partial; the script keeps it only on the page it
+  points to. Leave it off placeholder links (the country links point at the home page).
+- Job pages are generated from `jobs.html`, so they pick up the partials from it.
 
 ## After editing site.css or site.js
 
