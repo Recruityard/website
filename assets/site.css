@@ -183,6 +183,20 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
 .ry-video-notice p { margin: 0; max-width: 420px; }
 .ry-video-notice div { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
+/* Office map in the footer, after the subscribe block and the page links (Google Maps embed, loaded
+   after consent; notice reuses .ry-video-notice). Desktop footer (framer-v-wxynru) is a row: the map is
+   a third equal column as tall as the subscribe block; tablet/phone stack it at full width. */
+.ry-map { flex: none; width: 100%; display: flex; flex-direction: column; gap: 12px; font: 500 15px/1.4 "Montserrat", sans-serif; color: rgba(0, 0, 0, .85); }
+.framer-v-wxynru .ry-map { flex: 1 0 0; width: 1px; height: 306px; }
+.ry-map-frame { position: relative; height: 280px; border-radius: 12px; overflow: hidden; background: #e8eef5; }
+.framer-v-wxynru .ry-map-frame { flex: 1; height: auto; }
+.ry-map-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+.ry-map-frame iframe[hidden] { display: none; }
+.ry-map-address { margin: 0; }
+.ry-map-directions { align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 10px;
+  background: #6648fe; color: #fff; font: 600 14px "Montserrat", sans-serif; text-decoration: none; }
+.ry-map-directions:hover, .ry-map-directions:focus-visible { background: #6648fe; outline: none; }
+
 /* ---------- Contact form ---------- */
 .ry-captcha { margin: 4px 0 16px; min-height: 78px; }
 

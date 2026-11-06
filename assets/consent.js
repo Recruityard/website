@@ -3,7 +3,7 @@
 // Categories
 //   necessary  – always on (this consent record, contact-form security). No banner choice.
 //   statistics – Google Analytics 4 (measurement id in GA_MEASUREMENT_ID below).
-//   marketing  – embedded third-party media that may track (YouTube).
+//   marketing  – embedded third-party media that may track (YouTube, Google Maps).
 //
 // Nothing in "statistics" or "marketing" loads until the visitor allows it. Google Consent
 // Mode v2 signals are sent so Google tags respect the choice. The choice is stored in

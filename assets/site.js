@@ -386,6 +386,25 @@
     });
   });
 
+  /* ---------- Office map (footer) ----------
+     Google Maps isn't loaded until allowed (iframe has data-ry-map-src, not src). With
+     "Marketing & media" consent it loads straight away, also when that consent is given later;
+     otherwise a notice offers "Show map" (this visit only) or "Cookie settings". */
+  const maps = [...document.querySelectorAll('iframe[data-ry-map-src]')];
+  const showMaps = () => maps.forEach((frame) => {
+    if (frame.src) return;
+    frame.src = frame.dataset.ryMapSrc;
+    frame.hidden = false;
+    frame.parentElement.querySelector('.ry-map-notice')?.remove();
+  });
+  maps.forEach((frame) => frame.parentElement.querySelector('.ry-map-notice')?.addEventListener('click', (e) => {
+    const v = e.target.closest('button')?.dataset.v;
+    if (v === 'play') showMaps();
+    if (v === 'settings') window.ryConsent?.open();
+  }));
+  if (window.ryConsent?.get()?.marketing) showMaps();
+  document.addEventListener('ry:consent', (e) => { if (e.detail?.marketing) showMaps(); });
+
   /* ---------- Embedded widgets (Zoho "Featured jobs") ----------
      The srcdoc iframes start at height 0 and post their content height ({embedHeight}) to the
      parent page; Framer used to apply it. */
