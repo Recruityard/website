@@ -127,9 +127,9 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
 .ry-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 32px; border-radius: 10px;
   background: var(--ry-purple); color: #fff; font-size: 16px; font-weight: 700; text-decoration: none; border: 2px solid var(--ry-purple);
   transition: background-color .2s ease, color .2s ease; }
-.ry-btn:hover, .ry-btn:focus-visible { background: #5235e8; border-color: #5235e8; outline: none; }
+.ry-btn:hover, .ry-btn:focus-visible { background: #6648fe; border-color: #6648fe; outline: none; }
 .ry-btn-ghost { background: transparent; color: var(--ry-purple); }
-.ry-btn-ghost:hover, .ry-btn-ghost:focus-visible { background: rgba(102, 72, 254, .08); border-color: var(--ry-purple); }
+.ry-btn-ghost:hover, .ry-btn-ghost:focus-visible { background: #6648fe; border-color: var(--ry-purple); color: #fff; }
 .ry-job-body { font-size: 17px; line-height: 1.65; }
 .ry-job-body h2, .ry-job-body h3 { margin: 32px 0 12px; font-size: var(--ry-content-h2, 24px); font-weight: 600; line-height: 1.25; color: #000; }
 .ry-job-body h3 { font-size: var(--ry-content-h3, 20px); }
@@ -175,7 +175,7 @@ body:has(.ry-job) .framer-ihrpsp { inset: 0 !important; height: auto !important;
 .ry-consent-cta { margin: 0 0 24px !important; font-size: 16px; }
 .ry-consent-open-btn { min-height: 48px; padding: 0 24px; border: 0; border-radius: 10px; background: #6648fe; color: #fff;
   font: 600 15px "Montserrat", sans-serif; }
-.ry-consent-open-btn:hover, .ry-consent-open-btn:focus-visible { background: #5235e8; outline: none; }
+.ry-consent-open-btn:hover, .ry-consent-open-btn:focus-visible { background: #6648fe; outline: none; }
 
 /* YouTube click-to-play notice */
 .ry-video-notice { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center;
